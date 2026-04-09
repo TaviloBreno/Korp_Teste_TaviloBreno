@@ -58,7 +58,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient("BillingService", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5002/"); // URL do BillingService
+    client.BaseAddress = new Uri("http://localhost:5002/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddPolicyHandler((services, request) =>
