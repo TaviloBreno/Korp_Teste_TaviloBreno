@@ -20,4 +20,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BillingService.Application\BillingService.Application.csproj" />
+    <ProjectReference Include="..\BillingService.Domain\BillingService.Domain.csproj" />
+    <ProjectReference Include="..\BillingService.Infrastructure\BillingService.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
