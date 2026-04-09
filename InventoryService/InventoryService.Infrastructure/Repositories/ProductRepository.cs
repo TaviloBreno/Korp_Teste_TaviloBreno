@@ -39,11 +39,13 @@ namespace InventoryService.Infrastructure.Repositories
         public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
         {
             await _context.Products.AddAsync(product, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken); 
         }
 
         public void Update(Product product)
         {
             _context.Products.Update(product);
+            _context.SaveChanges();
         }
 
         public async Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default)
