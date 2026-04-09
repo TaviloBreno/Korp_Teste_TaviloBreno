@@ -1,10 +1,11 @@
 ﻿using InventoryService.Application.DTOs;
+using InventoryService.Application.Interfaces;
 using InventoryService.Domain.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryService.Application.Services
 {
-    public class ProductService
+    public class ProductService : IProductService
     {
         private readonly IProductRepository _repository;
         private readonly ILogger<ProductService> _logger;
@@ -59,7 +60,7 @@ namespace InventoryService.Application.Services
 
         private static ProductDto MapToDto(Domain.Entities.Product product) => new(
             product.Id,
-            product.Code,
+            product.Code  ?? string.Empty,
             product.Description ?? string.Empty,
             product.StockBalance,
             product.CreatedAt,

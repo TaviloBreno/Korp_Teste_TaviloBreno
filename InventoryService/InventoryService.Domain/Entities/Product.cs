@@ -9,7 +9,7 @@ namespace InventoryService.Domain.Entities
     public class Product
     {
         public Guid Id { get; private set; }
-        public string Code { get; }
+        public string? Code { get; private set; }
         public string? Description { get; private set; }
         public decimal StockBalance { get; private set; }
         public DateTime CreatedAt { get; private set; }
