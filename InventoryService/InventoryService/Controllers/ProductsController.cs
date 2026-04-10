@@ -51,6 +51,24 @@ namespace InventoryService.Api.Controllers
             return Ok(products);
         }
 
+        [HttpPatch("{id:guid}")]
+        [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductDto dto, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _service.UpdateAsync(id, dto, cancellationToken);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error updating product {ProductId}: {Message}", id, ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPatch("{id:guid}/deduct-stock")]
         [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
