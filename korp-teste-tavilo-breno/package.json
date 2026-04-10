@@ -44,6 +44,7 @@
     "@angular/build": "^20.3.23",
     "@angular/cli": "^20.3.23",
     "@angular/compiler-cli": "^20.2.0",
+    "@angular/platform-browser-dynamic": "^20.3.18",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@types/jasmine": "~5.1.0",
