@@ -23,6 +23,7 @@ namespace InventoryService.Infrastructure.Data
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.Code).IsRequired().HasMaxLength(50);
                 entity.Property(p => p.Description).IsRequired().HasMaxLength(200);
+                entity.Property(p => p.Price).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(p => p.StockBalance).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(p => p.CreatedAt).IsRequired();
 
