@@ -15,6 +15,7 @@ export class ProductStateService extends BaseStateService<Product[]> {
   // Subjects para ações com RxJS
   private createSubject = new Subject<Omit<Product, 'id'>>();
   private updateSubject = new Subject<{ id: string; product: Partial<Product> }>();
+  private deleteSubject = new Subject<string>();
 
   protected fetchData(): Observable<Product[]> {
     return this.api.getAll().pipe(
@@ -136,6 +137,50 @@ export class ProductStateService extends BaseStateService<Product[]> {
       )
       .subscribe();
 
+    this.deleteSubject
+      .pipe(
+        tap(() => {
+          this.loadingService.show();
+          this._state.update((s) => ({ ...s, loading: true, error: null }));
+        }),
+        switchMap((id) =>
+          this.api.delete(id).pipe(
+            tap(() => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Sucesso',
+                detail: 'Produto excluído com sucesso',
+                life: 3000,
+              });
+              this.load();
+            }),
+            catchError((error: any) => {
+              const errorMessage = this.resolveError(error, 'Erro ao excluir produto');
+              this._state.update((s) => ({
+                ...s,
+                loading: false,
+                error: errorMessage,
+              }));
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Erro',
+                detail: errorMessage,
+                sticky: true,
+              });
+              return of(null);
+            }),
+            finalize(() => {
+              this.loadingService.hide();
+              this._state.update((s) => ({
+                ...s,
+                loading: false,
+              }));
+            }),
+          ),
+        ),
+      )
+      .subscribe();
+
     // Carrega produtos na inicialização
     this.load();
   }
@@ -146,6 +191,10 @@ export class ProductStateService extends BaseStateService<Product[]> {
 
   update(id: string, product: Partial<Product>): void {
     this.updateSubject.next({ id, product });
+  }
+
+  delete(id: string): void {
+    this.deleteSubject.next(id);
   }
 
   retry(): void {

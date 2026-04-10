@@ -99,4 +99,20 @@ export class ProductApiService implements ProductRepository {
         ),
       );
   }
+
+  delete(id: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/Products/${id}`)
+      .pipe(
+        this.retryWithBackoff<void>(),
+        catchError((error) =>
+          throwError(() => ({
+            message: error?.message || 'Erro ao excluir produto',
+            service: 'inventory' as const,
+            status: error?.status,
+            originalError: error,
+          })),
+        ),
+      );
+  }
 }

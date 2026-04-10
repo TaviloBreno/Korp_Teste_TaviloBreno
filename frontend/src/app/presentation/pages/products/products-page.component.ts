@@ -75,13 +75,12 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
             <tr>
               <td>{{ product.code }}</td>
               <td>{{ product.description }}</td>
-              <td>{{ product.stockBalance }}</td>
+              <td>{{ product.stockBalance | number: '1.2-2' }}</td>
               <td>
-                <p-button
-                  icon="pi pi-pencil"
-                  (onClick)="editProduct(product)"
-                  text
-                />
+                <div class="flex items-center gap-2">
+                  <p-button icon="pi pi-pencil" (onClick)="editProduct(product)" text />
+                  <p-button icon="pi pi-trash" severity="danger" text (onClick)="confirmDelete(product)" />
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -93,9 +92,9 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
       [(visible)]="dialogVisible"
       [header]="isEdit() ? 'Editar Produto' : 'Novo Produto'"
       [modal]="true"
-      [style]="{ width: '450px' }"
+      [style]="{ width: '470px' }"
     >
-      <form [formGroup]="productForm" class="flex flex-col gap-3 mt-3">
+      <form [formGroup]="productForm" class="flex flex-col gap-4 py-2 mt-4">
         <input pInputText formControlName="code" placeholder="Código" />
         <input
           pInputText
@@ -105,6 +104,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
         <input
           pInputText
           type="number"
+          step="0.01"
           formControlName="stockBalance"
           placeholder="Saldo Inicial"
         />
@@ -182,7 +182,7 @@ export class ProductsPageComponent implements OnInit {
 
   save() {
     if (this.productForm.invalid || this.saving()) return;
-    const val = this.productForm.value;
+    const val = this.productForm.getRawValue();
     if (this.isEdit()) {
       this.state.update(this.editingId()!, {
         code: val.code,
@@ -207,5 +207,12 @@ export class ProductsPageComponent implements OnInit {
 
   clearError() {
     this.state.clearError();
+  }
+
+  confirmDelete(product: Product) {
+    const confirmed = window.confirm(`Excluir o produto ${product.code}?`);
+    if (!confirmed) return;
+
+    this.state.delete(product.id);
   }
 }

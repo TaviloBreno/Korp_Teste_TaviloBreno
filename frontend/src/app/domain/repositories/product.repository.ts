@@ -6,4 +6,5 @@ export interface ProductRepository {
   getById(id: string): Observable<Product>;
   create(product: Omit<Product, 'id'>): Observable<Product>;
   update(id: string, product: Partial<Product>): Observable<Product>;
+  delete(id: string): Observable<void>;
 }
