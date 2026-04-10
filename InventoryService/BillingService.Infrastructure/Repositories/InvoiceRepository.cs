@@ -2,10 +2,11 @@
 using BillingService.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using BillingService.Domain.Repositories;
 
 namespace BillingService.Infrastructure.Repositories
 {
-    public class InvoiceRepository
+    public class InvoiceRepository : IInvoiceRepository
     {
         private readonly BillingDbContext _context;
         private readonly ILogger<InvoiceRepository> _logger;

@@ -16,7 +16,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<InventoryDbContext>(options =>
     options.UseSqlServer(connectionString, sql =>
     {
-        sql.EnableRetryOnFailure( // Polly-like retry nativo do EF Core
+        sql.EnableRetryOnFailure( 
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null);
@@ -70,7 +70,6 @@ builder.Services.AddHttpClient("BillingService", client =>
             TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
         (outcome, timespan, retryCount, context) =>
         {
-            // Log de retry (opcional)
             var logger = services.GetRequiredService<ILogger<Program>>();
             logger.LogWarning("Retry {RetryCount} after {Timespan}s due to {StatusCode}",
                 retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode);
@@ -86,7 +85,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Service API v1");
-        c.RoutePrefix = string.Empty; // Swagger na raiz: https://localhost:5001/
     });
 }
 
