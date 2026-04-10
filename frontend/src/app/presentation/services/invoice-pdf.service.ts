@@ -57,7 +57,15 @@ export class InvoicePdfService {
     this.renderSummary(doc, margin, finalY + 10, pageWidth, totalAmount);
     this.renderFooter(doc, pageWidth, margin);
 
-    doc.save(`nota-fiscal-${invoice.sequentialNumber}.pdf`);
+    const pdfBlob = doc.output('blob');
+    const previewUrl = URL.createObjectURL(pdfBlob);
+    const previewWindow = window.open(previewUrl, '_blank', 'noopener,noreferrer');
+
+    if (!previewWindow) {
+      doc.save(`nota-fiscal-${invoice.sequentialNumber}.pdf`);
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(previewUrl), 60000);
   }
 
   private renderHeader(doc: jsPDF, pageWidth: number, brandColor: [number, number, number], accentColor: [number, number, number]) {

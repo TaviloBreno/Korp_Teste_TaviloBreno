@@ -107,7 +107,6 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
               <td>
                 <p-button
                   icon="pi pi-file-pdf"
-                  [disabled]="inv.status !== InvoiceStatus.Aberta"
                   (onClick)="openPdfConfirmation(inv)"
                 />
               </td>
@@ -120,25 +119,25 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
       [(visible)]="dialogVisible"
       header="Nova Nota Fiscal"
       [modal]="true"
-      [style]="{ width: '700px' }"
+      [style]="{ width: '760px' }"
     >
-      <form [formGroup]="invoiceForm" class="flex flex-col gap-4 mt-3">
-        <div formArrayName="items" class="flex flex-col gap-2">
+      <form [formGroup]="invoiceForm" class="flex flex-col gap-5 pt-4 px-2 pb-2">
+        <div formArrayName="items" class="flex flex-col gap-4">
           @for (item of items.controls; track item; let i = $index) {
-            <div [formGroupName]="i" class="flex gap-2 items-center bg-gray-50 p-2 rounded">
+            <div [formGroupName]="i" class="flex flex-wrap gap-3 items-end bg-gray-50 p-4 rounded-xl border border-gray-200">
               <p-select
                 formControlName="productId"
                 [options]="products() || []"
                 optionLabel="description"
                 optionValue="id"
                 placeholder="Produto"
-                styleClass="w-1/3"
+                styleClass="w-full md:w-1/3"
               />
               <p-inputNumber
                 formControlName="quantity"
                 placeholder="Qtd"
                 [showButtons]="true"
-                styleClass="w-1/5"
+                styleClass="w-full md:w-1/5"
               />
               <p-inputNumber
                 formControlName="unitPrice"
@@ -147,9 +146,9 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                 [min]="0.01"
                 [minFractionDigits]="2"
                 [maxFractionDigits]="2"
-                styleClass="w-1/5"
+                styleClass="w-full md:w-1/5"
               />
-              <small class="text-sm text-gray-500"
+              <small class="text-sm text-gray-500 md:pb-3"
                 >Saldo: {{ getStock(item.value.productId) }}</small
               >
               <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeItem(i)" />
@@ -183,7 +182,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
       <div class="flex flex-col items-center gap-4 py-4">
         @if (printing()) {
           <p-progressSpinner />
-          <p>Gerando PDF, processando nota e deduzindo estoque...</p>
+          <p>Gerando PDF em nova aba...</p>
         } @else {
           <p>Nota #{{ selectedInvoice()?.sequentialNumber }} pronta para download.</p>
           <div class="flex gap-2">
@@ -313,7 +312,6 @@ export class InvoicesPageComponent implements OnInit {
   }
 
   openPdfConfirmation(inv: Invoice) {
-    if (inv.status !== InvoiceStatus.Aberta) return;
     this.selectedInvoice.set(inv);
     this.printModalVisible.set(true);
   }
