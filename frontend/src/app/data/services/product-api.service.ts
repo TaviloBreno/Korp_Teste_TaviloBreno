@@ -82,9 +82,9 @@ export class ProductApiService implements ProductRepository {
   update(id: string, product: Partial<Product>): Observable<Product> {
     return this.http
       .patch<ProductDto>(`${this.baseUrl}/Products/${id}`, {
-        codigo: product.code,
-        descricao: product.description,
-        saldo: product.stockBalance,
+        code: product.code,
+        description: product.description,
+        stockBalance: product.stockBalance,
       })
       .pipe(
         this.retryWithBackoff<ProductDto>(),

@@ -14,7 +14,7 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
 
   // Subjects para ações com RxJS
   private createSubject = new Subject<{
-    items: { productId: string; quantity: number }[];
+    items: { productId: string; quantity: number; unitPrice: number }[];
   }>();
   private printSubject = new Subject<string>();
   private inventoryRefreshSubject = new Subject<void>();
@@ -141,7 +141,7 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
     this.load();
   }
 
-  create(invoiceData: { items: { productId: string; quantity: number }[] }): void {
+  create(invoiceData: { items: { productId: string; quantity: number; unitPrice: number }[] }): void {
     this.createSubject.next(invoiceData);
   }
 

@@ -22,7 +22,7 @@ import { debounceTime } from 'rxjs';
 import { InvoiceStateService } from '../../state/invoice-state.service';
 import { ProductStateService } from '../../state/product-state.service';
 import { Product } from '../../../domain/models/product.model';
-import { Invoice, InvoiceItem } from '../../../domain/models/invoice.model';
+import { Invoice } from '../../../domain/models/invoice.model';
 import { InvoiceStatus } from '../../../domain/models/invoice-status.enum';
 import { stockValidator } from '../../../shared/validators/stock.validator';
 import { ErrorBoundaryComponent } from '../../components/error-boundary.component';
@@ -137,7 +137,16 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                 formControlName="quantity"
                 placeholder="Qtd"
                 [showButtons]="true"
-                styleClass="w-1/4"
+                styleClass="w-1/5"
+              />
+              <p-inputNumber
+                formControlName="unitPrice"
+                placeholder="Valor Unit."
+                mode="decimal"
+                [min]="0.01"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                styleClass="w-1/5"
               />
               <small class="text-sm text-gray-500"
                 >Saldo: {{ getStock(item.value.productId) }}</small
@@ -261,6 +270,7 @@ export class InvoicesPageComponent implements OnInit {
   addItem() {
     const prodControl = this.fb.control('', Validators.required);
     const qtyControl = this.fb.control(1, [Validators.required, Validators.min(1)]);
+    const unitPriceControl = this.fb.control(1, [Validators.required, Validators.min(0.01)]);
 
     prodControl.valueChanges.pipe(debounceTime(200)).subscribe((prodId: string | null) => {
       if (!prodId) return;
@@ -270,7 +280,13 @@ export class InvoicesPageComponent implements OnInit {
       qtyControl.updateValueAndValidity();
     });
 
-    this.items.push(this.fb.group({ productId: prodControl, quantity: qtyControl }));
+    this.items.push(
+      this.fb.group({
+        productId: prodControl,
+        quantity: qtyControl,
+        unitPrice: unitPriceControl,
+      }),
+    );
   }
 
   removeItem(i: number) {
@@ -284,9 +300,10 @@ export class InvoicesPageComponent implements OnInit {
 
   saveInvoice() {
     if (this.invoiceForm.invalid || this.saving()) return;
-    const items: InvoiceItem[] = this.items.value.map((i: any) => ({
+    const items = this.items.value.map((i: any) => ({
       productId: i.productId,
-      quantity: i.quantity,
+      quantity: Number(i.quantity),
+      unitPrice: Number(i.unitPrice),
     }));
 
     this.invState.create({ items });
