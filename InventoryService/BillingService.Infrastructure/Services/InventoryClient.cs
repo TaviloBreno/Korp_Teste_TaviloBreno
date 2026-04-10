@@ -25,6 +25,9 @@ public class InventoryClient : IInventoryClient
     {
         try
         {
+            _logger.LogInformation("Calling InventoryService to deduct {Quantity} from product {ProductId}",
+                quantity, productId);
+
             var response = await _httpClient.PatchAsJsonAsync(
                 $"/api/Products/{productId}/deduct-stock",
                 quantity,
@@ -32,16 +35,27 @@ public class InventoryClient : IInventoryClient
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to deduct stock for product {ProductId}. Status: {StatusCode}",
-                    productId, response.StatusCode);
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                _logger.LogWarning(
+                    "Failed to deduct stock for product {ProductId}. " +
+                    "Status: {StatusCode}. Error: {Error}",
+                    productId, response.StatusCode, errorContent);
+
                 return false;
             }
 
+            _logger.LogInformation("Successfully deducted stock for product {ProductId}", productId);
             return true;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HttpRequestException while deducting stock for product {ProductId}", productId);
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deducting stock for product {ProductId}", productId);
+            _logger.LogError(ex, "Unexpected error deducting stock for product {ProductId}", productId);
             return false;
         }
     }

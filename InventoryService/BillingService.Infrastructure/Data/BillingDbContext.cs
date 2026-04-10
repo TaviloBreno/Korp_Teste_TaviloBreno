@@ -17,11 +17,21 @@ namespace BillingService.Infrastructure.Data
             modelBuilder.Entity<Invoice>(entity =>
             {
                 entity.HasKey(i => i.Id);
-                entity.Property(i => i.SequentialNumber).IsRequired();
-                entity.Property(i => i.Status).IsRequired();
-                entity.Property(i => i.TotalAmount).HasColumnType("decimal(18,2)");
-                entity.HasIndex(i => i.SequentialNumber).IsUnique();
-                entity.HasMany(i => i.Items).WithOne().HasForeignKey(i => i.InvoiceId);
+
+                entity.Property(i => i.SequentialNumber)
+                    .ValueGeneratedOnAdd()
+                    .UseIdentityColumn(1, 1);
+
+                entity.Property(i => i.Status)
+                    .IsRequired();
+                entity.Property(i => i.TotalAmount)
+                    .HasColumnType("decimal(18,2)");
+                
+                entity.HasIndex(i => i.SequentialNumber)
+                    .IsUnique();
+                entity.HasMany(i => i.Items)
+                    .WithOne()
+                    .HasForeignKey(i => i.InvoiceId);
             });
 
             modelBuilder.Entity<InvoiceItem>(entity =>
