@@ -7,6 +7,7 @@ export class ProductMapper {
       id: dto.id,
       code: dto.code ?? (dto as any).codigo,
       description: dto.description ?? (dto as any).descricao,
+      price: dto.price ?? 0,
       stockBalance: dto.stockBalance ?? (dto as any).saldo,
       createdAt: dto.createdAt,
       updatedAt: dto.updatedAt ?? null,
@@ -17,6 +18,7 @@ export class ProductMapper {
     return {
       code: entity.code,
       description: entity.description,
+      price: entity.price,
       stockBalance: entity.stockBalance,
     };
   }
