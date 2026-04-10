@@ -411,16 +411,6 @@ cd frontend
 npm test
 ```
 
-## Roadmap Funcional
-
-- [ ] Testes automatizados (unit + integration)
-- [ ] Autenticacao OAuth2 com Entra ID
-- [ ] Paginacao e filtros avancados
-- [ ] Relatorios de estoque e faturamento
-- [ ] Observabilidade (App Insights, Seq)
-- [ ] CI/CD com GitHub Actions
-- [ ] Deploy em Azure (App Service + SQL Database)
-
 ## Troubleshooting
 
 ### "Connection refused" ao conectar no SQL Server
