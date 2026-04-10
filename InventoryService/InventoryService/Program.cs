@@ -78,6 +78,13 @@ builder.Services.AddHttpClient("BillingService", client =>
 
 var app = builder.Build();
 
+// Seed do banco de dados
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+    await InventoryService.Infrastructure.Data.Seed.SeedDataAsync(dbContext);
+}
+
 // Swagger apenas em Development
 if (app.Environment.IsDevelopment())
 {
@@ -94,7 +101,7 @@ app.UseHttpsRedirection();
 // CORS (deve vir antes de Authorization)
 app.UseCors("AllowAngular");
 
-// Autenticação e Autorização
+// Autenticaï¿½ï¿½o e Autorizaï¿½ï¿½o
 app.UseAuthorization();
 
 // Mapear controllers

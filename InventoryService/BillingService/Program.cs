@@ -80,6 +80,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Seed do banco de dados
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+    await BillingService.Infrastructure.Data.Seed.SeedDataAsync(dbContext);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
