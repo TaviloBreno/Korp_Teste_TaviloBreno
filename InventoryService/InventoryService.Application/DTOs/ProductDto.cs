@@ -10,6 +10,7 @@ namespace InventoryService.Application.DTOs
     Guid Id,
     string Code,
     string Description,
+    decimal Price,
     decimal StockBalance,
     DateTime CreatedAt,
     DateTime? UpdatedAt
@@ -18,12 +19,14 @@ namespace InventoryService.Application.DTOs
     public record CreateProductDto(
         string Code,
         string Description,
+        decimal Price,
         decimal StockBalance
     );
 
     public record UpdateProductDto(
         string Code,
         string Description,
+        decimal Price,
         decimal StockBalance
     );
 }

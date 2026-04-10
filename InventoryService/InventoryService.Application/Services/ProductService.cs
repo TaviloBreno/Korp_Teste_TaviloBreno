@@ -23,7 +23,7 @@ namespace InventoryService.Application.Services
             if (await _repository.ExistsByCodeAsync(dto.Code, cancellationToken))
                 throw new InvalidOperationException($"Product with code '{dto.Code}' already exists.");
 
-            var product = new Domain.Entities.Product(dto.Code, dto.Description, dto.StockBalance);
+            var product = new Domain.Entities.Product(dto.Code, dto.Description, dto.Price, dto.StockBalance);
             await _repository.AddAsync(product, cancellationToken);
 
             _logger.LogInformation("Product created with id: {ProductId}", product.Id);
@@ -43,7 +43,7 @@ namespace InventoryService.Application.Services
                 throw new InvalidOperationException($"Product with code '{dto.Code}' already exists.");
             }
 
-            product.Update(dto.Code, dto.Description, dto.StockBalance);
+            product.Update(dto.Code, dto.Description, dto.Price, dto.StockBalance);
             await _repository.UpdateAsync(product, cancellationToken);
 
             return MapToDto(product);
@@ -105,6 +105,7 @@ namespace InventoryService.Application.Services
             product.Id,
             product.Code  ?? string.Empty,
             product.Description ?? string.Empty,
+            product.Price,
             product.StockBalance,
             product.CreatedAt,
             product.UpdatedAt
