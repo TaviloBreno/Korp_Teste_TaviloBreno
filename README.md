@@ -323,6 +323,64 @@ Para resetar: Delete e recrie o banco de dados.
 - **Validacao de Dominio**: Regras de negocio com messages claras
 - **Circuit Breaker**: Protege chamadas entre servicos
 
+## Checklist do Detalhamento Tecnico (para o video)
+
+### 1) Ciclos de vida do Angular utilizados
+
+- `OnInit` nas paginas principais:
+  - `ProductsPageComponent` carrega produtos no `ngOnInit`.
+  - `InvoicesPageComponent` carrega notas/produtos no `ngOnInit`.
+- Gerenciamento de teardown reativo com `takeUntilDestroyed(...)` no fluxo de sincronizacao de estoque na tela de notas.
+
+### 2) Uso de RxJS e como foi aplicado
+
+- `Subject` + `switchMap` nos state services para serializar acoes de create/update/print e evitar concorrencia duplicada de requisicoes.
+- `catchError`, `finalize`, `tap` para feedback de erro/sucesso e controle de loading.
+- `retryWhen` com backoff exponencial nos API services do frontend para falhas transientes (rede/5xx).
+- `debounceTime` na selecao de produto ao montar itens da nota para atualizar validacao de estoque com menor ruido.
+
+### 3) Outras bibliotecas utilizadas e finalidade
+
+- `Entity Framework Core` para persistencia e migrations SQL Server.
+- `FluentValidation` para validacoes no backend.
+- `Polly` para resiliencia entre microsservicos (retry + circuit breaker).
+- `Swashbuckle` para Swagger/OpenAPI.
+- `jsPDF` + `jspdf-autotable` para geracao de PDF de nota fiscal no frontend.
+
+### 4) Bibliotecas de componentes visuais
+
+- `PrimeNG` para tabela, dialog, botoes, spinner, toast e inputs.
+- `PrimeIcons` para iconografia.
+- `Tailwind CSS` para layout/utilitarios de estilo.
+
+### 5) Gerenciamento de dependencias no Golang
+
+- Nao se aplica, pois esta solucao foi implementada em `C# (.NET 8)` e `Angular`.
+
+### 6) Frameworks utilizados no Golang ou C#
+
+- `ASP.NET Core 8` para APIs REST.
+- `Entity Framework Core 8` para acesso a dados.
+
+### 7) Tratamento de erros e excecoes no backend
+
+- Excecoes de regra de negocio com `InvalidOperationException` no dominio/aplicacao.
+- Respostas HTTP com mensagens amigaveis nos controllers.
+- `DomainExceptionMiddleware` registrado no pipeline do Billing para padronizacao de falhas nao tratadas.
+- `UseExceptionHandler("/error")` para fallback de erro 500 em producao.
+
+### 8) Uso de LINQ e de que forma
+
+- Projecoes com `Select(...)` para mapear entidades em DTOs.
+- Consultas com `Where(...)`, `FirstOrDefaultAsync(...)`, `MaxAsync(...)`, `OrderByDescending(...)` nos repositorios.
+- Agregacao com `Sum(...)` para total da nota.
+
+### 9) Requisito opcional - Idempotencia
+
+- Implementado no frontend com `idempotencyInterceptor`:
+  - Gera e envia header `Idempotency-Key` para `POST/PUT/PATCH`.
+  - Bloqueia requisicoes mutantes duplicadas em voo para evitar efeitos colaterais.
+
 ## Comandos Uteis
 
 ### Build Frontend para Producao

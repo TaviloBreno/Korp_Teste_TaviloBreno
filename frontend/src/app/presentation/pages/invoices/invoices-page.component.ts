@@ -140,15 +140,15 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
             <tr>
               <td>{{ inv.sequentialNumber }}</td>
               <td>
-                <select
-                  class="w-full min-w-[130px] rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-                  [value]="inv.status"
-                  [disabled]="saving()"
-                  (change)="onStatusChange(inv, $any($event.target).value)"
+                <span
+                  class="inline-flex min-w-[100px] justify-center rounded-full px-2 py-1 text-xs font-semibold"
+                  [class.bg-emerald-100]="inv.status === InvoiceStatus.Aberta"
+                  [class.text-emerald-700]="inv.status === InvoiceStatus.Aberta"
+                  [class.bg-gray-200]="inv.status === InvoiceStatus.Fechada"
+                  [class.text-gray-700]="inv.status === InvoiceStatus.Fechada"
                 >
-                  <option [value]="InvoiceStatus.Aberta">ABERTA</option>
-                  <option [value]="InvoiceStatus.Fechada">FECHADA</option>
-                </select>
+                  {{ inv.status === InvoiceStatus.Aberta ? 'ABERTA' : 'FECHADA' }}
+                </span>
               </td>
               <td>{{ inv.items.length }} produto(s)</td>
               <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
@@ -451,14 +451,6 @@ export class InvoicesPageComponent implements OnInit {
       this.pdfService.generate(updatedInvoice);
       this.printModalVisible.set(false);
     });
-  }
-
-  onStatusChange(inv: Invoice, status: string) {
-    const nextStatus =
-      status === InvoiceStatus.Fechada ? InvoiceStatus.Fechada : InvoiceStatus.Aberta;
-
-    if (nextStatus === inv.status) return;
-    this.invState.updateStatus(inv.id, nextStatus);
   }
 
   onInvoiceRetry() {

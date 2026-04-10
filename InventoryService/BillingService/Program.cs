@@ -4,6 +4,7 @@ using BillingService.Domain.Repositories;
 using BillingService.Infrastructure.Data;
 using BillingService.Infrastructure.Repositories;
 using BillingService.Infrastructure.Services;
+using BillingService.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
@@ -106,6 +107,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseMiddleware<DomainExceptionMiddleware>();
 app.UseCors("AllowAngular");
 app.UseAuthorization();
 app.MapControllers();
