@@ -180,9 +180,6 @@ export class ProductStateService extends BaseStateService<Product[]> {
         ),
       )
       .subscribe();
-
-    // Carrega produtos na inicialização
-    this.load();
   }
 
   create(product: Omit<Product, 'id'>): void {

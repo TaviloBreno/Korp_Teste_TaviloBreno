@@ -136,9 +136,6 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
         ),
       )
       .subscribe();
-
-    // Carrega invoices na inicialização
-    this.load();
   }
 
   create(invoiceData: { items: { productId: string; quantity: number; unitPrice: number }[] }): void {
