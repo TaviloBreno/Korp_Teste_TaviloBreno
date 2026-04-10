@@ -27,8 +27,19 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
     return this.api.getAll();
   }
 
+  private isServiceUnavailable(error: any): boolean {
+    const status = error?.status;
+    return status === 0 || status >= 500;
+  }
+
   private resolveError(error: any, fallbackMessage: string): string {
     const status = error?.status;
+
+    const backendMessage = error?.details?.error;
+    if (backendMessage) {
+      return backendMessage;
+    }
+
     if (status === 409 || status === 422) {
       return 'Conflito de concorrencia detectado no saldo. Estoque recarregado; revise os itens e tente novamente.';
     }
@@ -60,10 +71,12 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao criar nota fiscal');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               if (error?.status === 409 || error?.status === 422) {
                 this.inventoryRefreshSubject.next();
@@ -111,10 +124,12 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao imprimir nota fiscal');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               if (error?.status === 409 || error?.status === 422) {
                 this.inventoryRefreshSubject.next();
@@ -159,10 +174,12 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao atualizar status da nota fiscal');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               this.messageService.add({
                 severity: 'error',

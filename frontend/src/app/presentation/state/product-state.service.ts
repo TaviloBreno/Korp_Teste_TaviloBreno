@@ -29,8 +29,19 @@ export class ProductStateService extends BaseStateService<Product[]> {
     );
   }
 
+  private isServiceUnavailable(error: any): boolean {
+    const status = error?.status;
+    return status === 0 || status >= 500;
+  }
+
   private resolveError(error: any, fallbackMessage: string): string {
     const status = error?.status;
+
+    const backendMessage = error?.details?.error;
+    if (backendMessage) {
+      return backendMessage;
+    }
+
     if (status === 409 || status === 422) {
       return 'Conflito de concorrencia detectado. O saldo foi recarregado; revise os dados e tente novamente.';
     }
@@ -61,10 +72,12 @@ export class ProductStateService extends BaseStateService<Product[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao criar produto');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               if (error?.status === 409 || error?.status === 422) {
                 this.load();
@@ -109,10 +122,12 @@ export class ProductStateService extends BaseStateService<Product[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao atualizar produto');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               if (error?.status === 409 || error?.status === 422) {
                 this.load();
@@ -156,10 +171,12 @@ export class ProductStateService extends BaseStateService<Product[]> {
             }),
             catchError((error: any) => {
               const errorMessage = this.resolveError(error, 'Erro ao excluir produto');
+              const serviceUnavailable = this.isServiceUnavailable(error);
+
               this._state.update((s) => ({
                 ...s,
                 loading: false,
-                error: errorMessage,
+                error: serviceUnavailable ? errorMessage : null,
               }));
               this.messageService.add({
                 severity: 'error',
