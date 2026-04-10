@@ -30,6 +30,25 @@ namespace InventoryService.Application.Services
             return MapToDto(product);
         }
 
+        public async Task<ProductDto> UpdateAsync(Guid id, UpdateProductDto dto, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Updating product {ProductId}", id);
+
+            var product = await _repository.GetByIdAsync(id, cancellationToken)
+                ?? throw new InvalidOperationException($"Product with id '{id}' not found.");
+
+            var productWithSameCode = await _repository.GetByCodeAsync(dto.Code, cancellationToken);
+            if (productWithSameCode != null && productWithSameCode.Id != id)
+            {
+                throw new InvalidOperationException($"Product with code '{dto.Code}' already exists.");
+            }
+
+            product.Update(dto.Code, dto.Description, dto.StockBalance);
+            await _repository.UpdateAsync(product, cancellationToken);
+
+            return MapToDto(product);
+        }
+
         public async Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var product = await _repository.GetByIdAsync(id, cancellationToken);

@@ -44,8 +44,10 @@ namespace InventoryService.Domain.Entities
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public void Update(string description, decimal stockBalance)
+        public void Update(string code, string description, decimal stockBalance)
         {
+            if (!string.IsNullOrWhiteSpace(code))
+                Code = code;
             Description = !string.IsNullOrWhiteSpace(description) ? description : Description;
             StockBalance = stockBalance >= 0 ? stockBalance : StockBalance;
             UpdatedAt = DateTime.UtcNow;

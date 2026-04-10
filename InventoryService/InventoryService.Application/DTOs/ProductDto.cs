@@ -20,4 +20,10 @@ namespace InventoryService.Application.DTOs
         string Description,
         decimal StockBalance
     );
+
+    public record UpdateProductDto(
+        string Code,
+        string Description,
+        decimal StockBalance
+    );
 }
