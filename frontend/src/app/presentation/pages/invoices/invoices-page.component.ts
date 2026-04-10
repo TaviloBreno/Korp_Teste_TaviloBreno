@@ -215,8 +215,8 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                     styleClass="w-full"
                   />
                 </div>
-                <div class="md:col-span-3">
-                  <label class="block text-xs font-medium text-gray-600 mb-1">Valor Unitario</label>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Valor Unitário</label>
                   <p-inputNumber
                     formControlName="unitPrice"
                     placeholder="0,00"
@@ -227,13 +227,19 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                     styleClass="w-full"
                   />
                 </div>
-                <div class="md:col-span-1 text-right text-xs text-gray-500 pb-1">
-                  {{ getStock(item.value.productId) }}
+                <div class="md:col-span-1 rounded-lg bg-blue-50 border border-blue-200 p-2">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Subtotal</label>
+                  <div class="text-sm font-semibold text-blue-700">
+                    {{ ((item.value.quantity || 0) * (item.value.unitPrice || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}
+                  </div>
+                </div>
+                <div class="md:col-span-1 flex justify-end">
+                  <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeItem(i)" />
                 </div>
               </div>
 
               <div class="mt-2 flex items-center justify-between text-xs">
-                <span class="text-gray-500">Saldo disponivel</span>
+                <span class="text-gray-500">Saldo disponivel: {{ getStock(item.value.productId) }}</span>
                 @if (item.hasError('stockExceeded')) {
                   <span class="text-red-600 font-medium"
                     >Quantidade acima do estoque ({{ item.getError('stockExceeded')?.available }})</span
@@ -243,9 +249,14 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
             </div>
           }
         </div>
-        <div class="flex justify-between items-center pt-1">
+        <div class="flex justify-between items-center pt-4 border-t border-gray-200">
           <p-button label="Adicionar Item" icon="pi pi-plus" text (onClick)="addItem()" />
-          <span class="text-sm text-gray-600">Total de itens: {{ items.length }}</span>
+          <div class="text-right">
+            <div class="text-xs text-gray-600 mb-1">Total de itens: {{ items.length }}</div>
+            <div class="text-lg font-bold text-green-600">
+              {{ getInvoiceTotal().toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}
+            </div>
+          </div>
         </div>
       </form>
       <ng-template pTemplate="footer">
@@ -397,14 +408,21 @@ export class InvoicesPageComponent implements OnInit {
   addItem() {
     const prodControl = this.fb.control('', Validators.required);
     const qtyControl = this.fb.control(1, [Validators.required, Validators.min(1)]);
-    const unitPriceControl = this.fb.control(1, [Validators.required, Validators.min(0.01)]);
+    const unitPriceControl = this.fb.control({ value: 0, disabled: false }, [Validators.required, Validators.min(0.01)]);
 
     prodControl.valueChanges.pipe(debounceTime(200)).subscribe((prodId: string | null) => {
-      if (!prodId) return;
+      if (!prodId) {
+        unitPriceControl.setValue(0);
+        return;
+      }
       const stock = this.getStock(prodId);
+      const price = this.getProductPrice(prodId);
+
       qtyControl.clearValidators();
       qtyControl.setValidators([Validators.required, Validators.min(1), stockValidator(stock)]);
       qtyControl.updateValueAndValidity();
+
+      unitPriceControl.setValue(price);
     });
 
     this.items.push(
@@ -424,6 +442,21 @@ export class InvoicesPageComponent implements OnInit {
     if (!productId) return 0;
     return (this.products() || []).find((p: Product) => p.id === productId)?.stockBalance ?? 0;
   }
+
+  getProductPrice(productId: string | null): number {
+    if (!productId) return 0;
+    return (this.products() || []).find((p: Product) => p.id === productId)?.price ?? 0;
+  }
+
+  getInvoiceTotal = computed(() => {
+    const items = this.items.value;
+    if (!items || items.length === 0) return 0;
+    return items.reduce((total: number, item: any) => {
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unitPrice) || 0;
+      return total + (quantity * unitPrice);
+    }, 0);
+  });
 
   saveInvoice() {
     if (this.invoiceForm.invalid || this.saving()) return;
