@@ -16,7 +16,8 @@ namespace BillingService.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SequentialNumber = table.Column<int>(type: "int", nullable: false),
+                    SequentialNumber = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Status = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),

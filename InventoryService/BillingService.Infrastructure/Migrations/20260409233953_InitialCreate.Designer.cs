@@ -38,7 +38,10 @@ namespace BillingService.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("SequentialNumber")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SequentialNumber"));
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
