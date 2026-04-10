@@ -1,213 +1,401 @@
-# Korp - Teste Tecnico (Inventory + Billing)
+# Korp - Teste Tecnico (Inventory + Billing + Frontend)
 
-Sistema de emissao de notas fiscais com arquitetura de microsservicos em .NET 8, dividido em dois dominios principais:
+Sistema completo de emissao de notas fiscais com arquitetura de microsservicos em .NET 8 no backend e Angular 20 no frontend, dividido em dois dominios principais:
 
-- InventoryService: cadastro de produtos e controle de estoque.
-- BillingService: emissao e fechamento de notas fiscais com validacao de estoque no InventoryService.
+- **InventoryService**: API REST para cadastro de produtos e controle de estoque (.NET 8)
+- **BillingService**: API REST para emissao e fechamento de notas fiscais (.NET 8)
+- **Frontend**: Interface Angular para gerenciar produtos e notas fiscais
 
 ## Visao Geral
 
-Este repositorio contem uma solucao em C# com separacao por camadas (Api, Application, Domain e Infrastructure) para cada microsservico.
+Repositorio com solucao completa em C# (backend) com separacao em camadas (Api, Application, Domain, Infrastructure) e frontend Angular em componentes standalone com estado reativo.
 
 Fluxo principal de negocio:
 
-1. Produto e cadastrado no InventoryService.
-2. Nota fiscal e criada no BillingService com itens e precos.
-3. Ao imprimir/fechar a nota, o BillingService chama o InventoryService para baixar o estoque de cada item.
-4. Se alguma baixa falhar, o fechamento e interrompido com erro de validacao.
+1. Usuario acessa interface Angular.
+2. Cadastra ou consulta produtos no InventoryService.
+3. Cria novas notas fiscais no BillingService (referenciando produtos).
+4. Ao imprimir/fechar a nota, o BillingService comunica com InventoryService para baixar estoque.
+5. Se alguma baixa falhar, o fechamento e interrompido com erro de validacao.
+
+**Obs**: Seeds automaticos sao executados na inicializacao das APIs para popular dados de teste.
 
 ## Arquitetura
 
-Estrutura da solucao (resumo):
+### Backend (.NET 8)
 
-- InventoryService.Api.sln
-- InventoryService (API de estoque)
-- InventoryService.Application
-- InventoryService.Domain
-- InventoryService.Infrastructure
-- BillingService (API de faturamento)
-- BillingService.Application
-- BillingService.Domain
-- BillingService.Infrastructure
-- Shared.Models
+```
+InventoryService.Api.sln
+├── InventoryService (API)
+│   ├── InventoryService.Api
+│   ├── InventoryService.Application
+│   ├── InventoryService.Domain
+│   └── InventoryService.Infrastructure
+├── BillingService (API)
+│   ├── BillingService.Api
+│   ├── BillingService.Application
+│   ├── BillingService.Domain
+│   └── BillingService.Infrastructure
+└── Shared.Models
+```
 
-Padroes e decisoes usadas:
+### Frontend (Angular 20)
 
-- Separacao em camadas com responsabilidades claras.
-- Entity Framework Core 8 com SQL Server.
-- Injeccao de dependencia nativa do ASP.NET Core.
-- Resiliencia em chamadas HTTP entre servicos com Polly:
-	- Retry exponencial.
-	- Circuit Breaker no BillingService para dependencia de estoque.
-- Swagger/OpenAPI em ambiente Development.
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── core/          // Servicos, interceptors
+│   │   ├── data/          // DTOs, mappers, API clients
+│   │   ├── domain/        // Modelos de negocio
+│   │   ├── presentation/  // Componentes, paginas, layout
+│   │   └── shared/        // Validators, base services
+│   └── environments/      // Configuracoes por ambiente
+├── angular.json
+├── package.json
+└── tailwind.config.js
+```
+
+## Padroes e Decisoes
+
+### Backend
+- Separacao em camadas com responsabilidades claras
+- Entity Framework Core 8 com SqlServer 2022
+- Injeccao de dependencia nativa do ASP.NET Core
+- Polly para resiliencia: Retry exponencial + Circuit Breaker
+- Seeds de dados na inicializacao das APIs
+- Middleware de tratamento de excecoes de dominio
+- Swagger/OpenAPI habilitado em Development
+
+### Frontend
+- Componentes standalone (sem modules)
+- RxJS signals para reatividade
+- HTTP interceptors para logging, loading, idempotency
+- Repositorio pattern para isolamento de dados
+- Validators customizados (stocks, async)
+- PrimeNG para components de UI
+- Tailwind CSS para estilos
+- ESLint + Prettier para qualidade de codigo
 
 ## Tecnologias
 
+### Backend
 - .NET SDK 8
-- ASP.NET Core Web API
+- ASP.NET Core 8 Web API
 - Entity Framework Core 8
-- SQL Server 2022 (via Docker)
-- Polly
-- Swagger (Swashbuckle)
+- SQL Server 2022 (Docker)
+- Polly 8.x
+- Swashbuckle (Swagger)
+- FluentValidation
+
+### Frontend
+- Node.js 20+
+- Angular 20
+- TypeScript 5.9
+- tailwindcss 3.4
+- PrimeNG 20
+- RxJS 7.8
+- ESLint 9
+- Prettier 3.8
 
 ## Endpoints Principais
 
 ### InventoryService
 
-Base URL (Development):
+**Base**: `http://localhost:5100/api`
 
-- HTTPS: https://localhost:7126
-- HTTP: http://localhost:5100
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| POST | `/Products` | Criar produto |
+| GET | `/Products` | Listar produtos |
+| GET | `/Products/{id}` | Buscar produto por ID |
+| PATCH | `/Products/{id}/deduct-stock` | Baixar estoque (body: decimal) |
 
-Rotas:
-
-- POST /api/Products
-	- Cria produto.
-- GET /api/Products
-	- Lista produtos.
-- GET /api/Products/{id}
-	- Busca produto por ID.
-- PATCH /api/Products/{id}/deduct-stock
-	- Baixa estoque do produto.
-	- Body: numero decimal (ex.: 2 ou 2.5).
+**Swagger**: https://localhost:7126/swagger
 
 ### BillingService
 
-Base URL (Development):
+**Base**: `http://localhost:5286/api`
 
-- HTTPS: https://localhost:7128
-- HTTP: http://localhost:5286
+| Metodo | Rota | Descricao |
+|--------|------|-----------|
+| POST | `/Invoices` | Criar nota fiscal |
+| GET | `/Invoices` | Listar notas fiscais |
+| GET | `/Invoices/{id}` | Buscar nota por ID |
+| POST | `/Invoices/{id}/print` | Imprimir e fechar nota |
 
-Rotas:
-
-- POST /api/Invoices
-	- Cria nota fiscal (status Open).
-- GET /api/Invoices
-	- Lista notas fiscais.
-- GET /api/Invoices/{id}
-	- Busca nota por ID.
-- POST /api/Invoices/{id}/print
-	- Imprime/fecha nota (status Closed) e tenta baixar estoque de todos os itens.
+**Swagger**: https://localhost:7128/swagger
 
 ## Exemplo de Payloads
 
-Criar produto:
+### Criar Produto
 
 ```json
 {
-	"code": "SKU-001",
-	"description": "Produto de teste",
-	"stockBalance": 100
+  "code": "SKU-001",
+  "description": "Notebook Dell Inspiron 15",
+  "stockBalance": 50
 }
 ```
 
-Criar nota fiscal:
+### Criar Nota Fiscal
 
 ```json
 {
-	"items": [
-		{
-			"productId": "00000000-0000-0000-0000-000000000000",
-			"quantity": 2,
-			"unitPrice": 49.9
-		}
-	]
+  "items": [
+    {
+      "productId": "550e8400-e29b-41d4-a716-446655440000",
+      "quantity": 2,
+      "unitPrice": 1299.99
+    },
+    {
+      "productId": "550e8400-e29b-41d4-a716-446655440001",
+      "quantity": 1,
+      "unitPrice": 129.99
+    }
+  ]
 }
 ```
 
 ## Como Executar Localmente
 
-### 1. Pre-requisitos
+### Pre-requisitos
 
-- .NET SDK 8 instalado.
-- Docker Desktop em execucao.
-- (Opcional) Visual Studio 2022 ou VS Code.
+- **.NET SDK 8** instalado
+- **Node.js 20+** instalado
+- **Docker Desktop** em execucao
+- **Git** instalado
+
+### 1. Clonar o Repositorio
+
+```bash
+git clone <url-repositorio>
+cd teste_tecnico
+```
 
 ### 2. Subir SQL Server via Docker
 
-Na raiz do repositorio:
-
 ```bash
-docker compose up -d
+docker-compose up -d
 ```
 
-Container esperado:
+Aguardar container `korp-sqlserver` ficar healthy (porta 1433).
 
-- korp-sqlserver (porta 1433)
-
-### 3. Restaurar dependencias
+### 3. Restaurar Dependencias do Backend
 
 ```bash
 cd InventoryService
 dotnet restore InventoryService.Api.sln
 ```
 
-### 4. Aplicar migrations
+### 4. Aplicar Migrations e Seeds
 
-Observacao: o projeto possui migrations para ambos os contextos.
+As migrations sao aplicadas automaticamente na inicializacao. Os seeds sao executados se o banco estiver vazio.
+
+**Opcional - Aplicar manualmente:**
 
 ```bash
 cd InventoryService
 
-dotnet ef database update --project InventoryService.Infrastructure --startup-project InventoryService --context InventoryDbContext
+dotnet ef database update \
+  --project InventoryService.Infrastructure \
+  --startup-project InventoryService \
+  --context InventoryDbContext
 
-dotnet ef database update --project BillingService.Infrastructure --startup-project BillingService --context BillingDbContext
+dotnet ef database update \
+  --project BillingService.Infrastructure \
+  --startup-project BillingService \
+  --context BillingDbContext
 ```
 
-Se necessario, instale a ferramenta:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
-
-### 5. Executar as APIs
-
-Terminal 1:
+### 5. Executar Backend (Terminal 1)
 
 ```bash
 cd InventoryService/InventoryService
 dotnet run
 ```
 
-Terminal 2:
+**Esperado**:
+```
+Now listening on: http://localhost:5100
+Now listening on: https://localhost:7126
+```
+
+### 6. Executar BillingService (Terminal 2)
 
 ```bash
 cd InventoryService/BillingService
 dotnet run
 ```
 
-Swagger:
+**Esperado**:
+```
+Now listening on: http://localhost:5286
+Now listening on: https://localhost:7128
+```
 
-- Inventory: https://localhost:7126/swagger
-- Billing: https://localhost:7128/swagger
+### 7. Instalar Dependencias do Frontend (Terminal 3)
 
-## Configuracao
+```bash
+cd frontend
+npm install
+```
 
-Arquivos relevantes:
+### 8. Executar Frontend
 
-- InventoryService/InventoryService/appsettings.json
-- InventoryService/InventoryService/appsettings.Development.json
-- InventoryService/BillingService/appsettings.json
-- InventoryService/BillingService/appsettings.Development.json
+```bash
+npm start
+```
 
-Variaveis importantes:
+**Esperado**:
+```
+Application bundle generated successfully. (123.45 seconds)
 
-- ConnectionStrings:DefaultConnection
-- Services:InventoryService (usado pelo BillingService para comunicar com o InventoryService)
+Initial Chunk Files | Names | Size
+main.js             | main | 456 kB
+```
 
-## Pontos de Atencao no Estado Atual
+Abrir browser em: `http://localhost:4200`
 
-- O BillingService depende do InventoryService online para fechamento de nota.
-- Em Development, revise as strings de conexao para garantir separacao de bancos por servico conforme sua estrategia de ambiente.
-- O projeto ainda nao possui suite de testes automatizados (unitarios/integracao) versionada na solucao.
+## Arquivos de Configuracao
 
-## Roadmap Sugerido
+### Backend
 
-- Adicionar testes unitarios para regras de dominio (Product, Invoice).
-- Adicionar testes de integracao para fluxo Create Invoice + Print.
-- Padronizar versionamento de contratos e tratamento de erros entre servicos.
-- Adicionar observabilidade (tracing, metricas e correlation id).
+- `InventoryService/InventoryService/appsettings.Development.json`
+- `InventoryService/BillingService/appsettings.Development.json`
+
+**Variaveis Importantes:**
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=InventoryDB;..."
+  },
+  "Services": {
+    "InventoryService": "https://localhost:7126"
+  }
+}
+```
+
+### Frontend
+
+- `frontend/src/environments/environment.ts` (produccao)
+- `frontend/src/environments/environment.development.ts` (desenvolvimento)
+
+**Configuracao:**
+
+```typescript
+export const environment = {
+  production: false,
+  inventoryApiUrl: 'http://localhost:5100/api',
+  billingApiUrl: 'http://localhost:5286/api',
+  retryAttempts: 3,
+  retryDelayMs: 1000,
+};
+```
+
+## Seeds de Dados
+
+Os seeds sao autoexecutaveis na inicializacao se o banco estiver vazio.
+
+### InventoryService Seed
+
+10 produtos de TI com estoque positivo:
+- Notebooks, monitors, perifericos, etc.
+
+### BillingService Seed
+
+2 notas fiscais de exemplo com multiplos itens (status: aberto).
+
+Para resetar: Delete e recrie o banco de dados.
+
+## Tratamento de Erros
+
+### Frontend
+
+- **Interceptor de Erros**: Exibe toasts com mensagens amigaveis
+- **Retry automatico**: Politica de exponential backoff (3 tentativas)
+- **Timeout**: Requisicoes expiram apos 30 segundos
+
+### Backend
+
+- **Middleware de Excecao**: Captura erros de dominio e HTTP
+- **Validacao de Dominio**: Regras de negocio com messages claras
+- **Circuit Breaker**: Protege chamadas entre servicos
+
+## Comandos Uteis
+
+### Build Frontend para Producao
+
+```bash
+cd frontend
+npm run build
+```
+
+Output em `frontend/dist/`
+
+### Lint e Format
+
+```bash
+cd frontend
+
+# ESLint
+npm run lint
+
+# Prettier (format)
+npx prettier --write src/
+```
+
+### Testes Frontend
+
+```bash
+cd frontend
+npm test
+```
+
+## Roadmap Funcional
+
+- [ ] Testes automatizados (unit + integration)
+- [ ] Autenticacao OAuth2 com Entra ID
+- [ ] Paginacao e filtros avancados
+- [ ] Relatorios de estoque e faturamento
+- [ ] Observabilidade (App Insights, Seq)
+- [ ] CI/CD com GitHub Actions
+- [ ] Deploy em Azure (App Service + SQL Database)
+
+## Troubleshooting
+
+### "Connection refused" ao conectar no SQL Server
+
+**Solucao**: Verificar se container Docker esta em execucao
+
+```bash
+docker ps | grep sqlserver
+```
+
+### "Cannot GET /" no frontend
+
+**Solucao**: Verificar se o servidor Angular esta rodando em localhost:4200
+
+```bash
+npm start
+```
+
+### Erros de CORS
+
+**Solucao**: Verificar `appsettings.json` - CORS esta configurado para `http://localhost:4200`
+
+```csharp
+policy.WithOrigins("http://localhost:4200")
+```
+
+## Contribuicao
+
+1. Criar branch: `git checkout -b feature/sua-feature`
+2. Commit com mensagem clara: `git commit -m "feat: descricao"`
+3. Push: `git push origin feature/sua-feature`
+4. Abrir PR para `main`
 
 ## Licenca
 
-Consulte o arquivo LICENSE na raiz do repositorio.
+Consulte o arquivo [LICENSE](LICENSE) na raiz do repositorio.
