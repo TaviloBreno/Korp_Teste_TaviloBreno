@@ -105,10 +105,21 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
               <td>{{ inv.items.length }} produto(s)</td>
               <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>
-                <p-button
-                  icon="pi pi-file-pdf"
-                  (onClick)="openPdfConfirmation(inv)"
-                />
+                <div class="flex items-center gap-2">
+                  <p-button
+                    [label]="inv.status === InvoiceStatus.Aberta ? 'Fechar' : 'Reabrir'"
+                    [severity]="inv.status === InvoiceStatus.Aberta ? 'warning' : 'secondary'"
+                    [outlined]="inv.status !== InvoiceStatus.Aberta"
+                    size="small"
+                    (onClick)="toggleStatus(inv)"
+                  />
+                  <p-button
+                    icon="pi pi-file-pdf"
+                    severity="contrast"
+                    [disabled]="inv.status === InvoiceStatus.Fechada"
+                    (onClick)="openPdfConfirmation(inv)"
+                  />
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -119,53 +130,79 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
       [(visible)]="dialogVisible"
       header="Nova Nota Fiscal"
       [modal]="true"
-      [style]="{ width: '760px' }"
+      [style]="{ width: '860px', maxWidth: '96vw' }"
     >
-      <form [formGroup]="invoiceForm" class="flex flex-col gap-5 pt-4 px-2 pb-2">
-        <div formArrayName="items" class="flex flex-col gap-4">
+      <form [formGroup]="invoiceForm" class="flex flex-col gap-6 pt-4 px-1 pb-2">
+        <div class="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+          Selecione os produtos e quantidades para montar a nota. Ao emitir, a nota será fechada automaticamente.
+        </div>
+
+        <div formArrayName="items" class="flex flex-col gap-5">
           @for (item of items.controls; track item; let i = $index) {
-            <div [formGroupName]="i" class="flex flex-wrap gap-3 items-end bg-gray-50 p-4 rounded-xl border border-gray-200">
-              <p-select
-                formControlName="productId"
-                [options]="products() || []"
-                optionLabel="description"
-                optionValue="id"
-                placeholder="Produto"
-                styleClass="w-full md:w-1/3"
-              />
-              <p-inputNumber
-                formControlName="quantity"
-                placeholder="Qtd"
-                [showButtons]="true"
-                styleClass="w-full md:w-1/5"
-              />
-              <p-inputNumber
-                formControlName="unitPrice"
-                placeholder="Valor Unit."
-                mode="decimal"
-                [min]="0.01"
-                [minFractionDigits]="2"
-                [maxFractionDigits]="2"
-                styleClass="w-full md:w-1/5"
-              />
-              <small class="text-sm text-gray-500 md:pb-3"
-                >Saldo: {{ getStock(item.value.productId) }}</small
-              >
-              <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeItem(i)" />
-              @if (item.hasError('stockExceeded')) {
-                <small class="text-red-500"
-                  >Excede estoque ({{ item.getError('stockExceeded')?.available }})</small
-                >
-              }
+            <div [formGroupName]="i" class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-semibold text-gray-700">Item {{ i + 1 }}</span>
+                <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeItem(i)" />
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-6">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Produto</label>
+                  <p-select
+                    formControlName="productId"
+                    [options]="products() || []"
+                    optionLabel="description"
+                    optionValue="id"
+                    placeholder="Selecione um produto"
+                    styleClass="w-full"
+                  />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Quantidade</label>
+                  <p-inputNumber
+                    formControlName="quantity"
+                    placeholder="Qtd"
+                    [showButtons]="true"
+                    styleClass="w-full"
+                  />
+                </div>
+                <div class="md:col-span-3">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Valor Unitario</label>
+                  <p-inputNumber
+                    formControlName="unitPrice"
+                    placeholder="0,00"
+                    mode="decimal"
+                    [min]="0.01"
+                    [minFractionDigits]="2"
+                    [maxFractionDigits]="2"
+                    styleClass="w-full"
+                  />
+                </div>
+                <div class="md:col-span-1 text-right text-xs text-gray-500 pb-1">
+                  {{ getStock(item.value.productId) }}
+                </div>
+              </div>
+
+              <div class="mt-2 flex items-center justify-between text-xs">
+                <span class="text-gray-500">Saldo disponivel</span>
+                @if (item.hasError('stockExceeded')) {
+                  <span class="text-red-600 font-medium"
+                    >Quantidade acima do estoque ({{ item.getError('stockExceeded')?.available }})</span
+                  >
+                }
+              </div>
             </div>
           }
         </div>
-        <p-button label="Adicionar Item" icon="pi pi-plus" text (onClick)="addItem()" />
+        <div class="flex justify-between items-center pt-1">
+          <p-button label="Adicionar Item" icon="pi pi-plus" text (onClick)="addItem()" />
+          <span class="text-sm text-gray-600">Total de itens: {{ items.length }}</span>
+        </div>
       </form>
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" icon="pi pi-times" text (onClick)="dialogVisible.set(false)" />
         <p-button
-          label="Gerar Nota"
+          label="Emitir Nota"
           icon="pi pi-check"
           [disabled]="invoiceForm.invalid || saving()"
           (onClick)="saveInvoice()"
@@ -184,7 +221,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
           <p-progressSpinner />
           <p>Gerando PDF em nova aba...</p>
         } @else {
-          <p>Nota #{{ selectedInvoice()?.sequentialNumber }} pronta para download.</p>
+          <p>Nota #{{ selectedInvoice()?.sequentialNumber }} sera emitida e fechada automaticamente.</p>
           <div class="flex gap-2">
             <p-button
               label="Cancelar"
@@ -321,8 +358,17 @@ export class InvoicesPageComponent implements OnInit {
     const inv = this.selectedInvoice();
     if (!inv) return;
 
-    this.pdfService.generate(inv);
-    this.printModalVisible.set(false);
+    this.invState.print(inv.id, (updatedInvoice) => {
+      this.pdfService.generate(updatedInvoice);
+      this.printModalVisible.set(false);
+    });
+  }
+
+  toggleStatus(inv: Invoice) {
+    const nextStatus =
+      inv.status === InvoiceStatus.Aberta ? InvoiceStatus.Fechada : InvoiceStatus.Aberta;
+
+    this.invState.updateStatus(inv.id, nextStatus);
   }
 
   onInvoiceRetry() {

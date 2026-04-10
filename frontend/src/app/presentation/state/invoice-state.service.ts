@@ -5,6 +5,7 @@ import { Invoice } from '../../domain/models/invoice.model';
 import { Observable, Subject, switchMap, finalize, tap, catchError, of } from 'rxjs';
 import { LoadingService } from '../../core/services/loading.service';
 import { MessageService } from 'primeng/api';
+import { InvoiceStatus } from '../../domain/models/invoice-status.enum';
 
 @Injectable({ providedIn: 'root' })
 export class InvoiceStateService extends BaseStateService<Invoice[]> {
@@ -16,7 +17,8 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
   private createSubject = new Subject<{
     items: { productId: string; quantity: number; unitPrice: number }[];
   }>();
-  private printSubject = new Subject<string>();
+  private printSubject = new Subject<{ id: string; onSuccess?: (invoice: Invoice) => void }>();
+  private updateStatusSubject = new Subject<{ id: string; status: InvoiceStatus }>();
   private inventoryRefreshSubject = new Subject<void>();
 
   readonly inventoryRefreshRequested$ = this.inventoryRefreshSubject.asObservable();
@@ -94,15 +96,16 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
           this.loadingService.show();
           this._state.update((s) => ({ ...s, loading: true, error: null }));
         }),
-        switchMap((id) =>
+        switchMap(({ id, onSuccess }) =>
           this.api.print(id).pipe(
-            tap(() => {
+            tap((updatedInvoice) => {
               this.messageService.add({
                 severity: 'success',
                 summary: 'Sucesso',
                 detail: 'Nota fiscal impressa com sucesso',
                 life: 3000,
               });
+              onSuccess?.(updatedInvoice);
               this.inventoryRefreshSubject.next();
               this.load();
             }),
@@ -136,14 +139,62 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
         ),
       )
       .subscribe();
+
+    this.updateStatusSubject
+      .pipe(
+        tap(() => {
+          this.loadingService.show();
+          this._state.update((s) => ({ ...s, loading: true, error: null }));
+        }),
+        switchMap(({ id, status }) =>
+          this.api.updateStatus(id, status).pipe(
+            tap(() => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Sucesso',
+                detail: 'Status da nota atualizado com sucesso',
+                life: 2500,
+              });
+              this.load();
+            }),
+            catchError((error: any) => {
+              const errorMessage = this.resolveError(error, 'Erro ao atualizar status da nota fiscal');
+              this._state.update((s) => ({
+                ...s,
+                loading: false,
+                error: errorMessage,
+              }));
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Erro',
+                detail: errorMessage,
+                sticky: true,
+              });
+              return of(null);
+            }),
+            finalize(() => {
+              this.loadingService.hide();
+              this._state.update((s) => ({
+                ...s,
+                loading: false,
+              }));
+            }),
+          ),
+        ),
+      )
+      .subscribe();
   }
 
   create(invoiceData: { items: { productId: string; quantity: number; unitPrice: number }[] }): void {
     this.createSubject.next(invoiceData);
   }
 
-  print(id: string): void {
-    this.printSubject.next(id);
+  print(id: string, onSuccess?: (invoice: Invoice) => void): void {
+    this.printSubject.next({ id, onSuccess });
+  }
+
+  updateStatus(id: string, status: InvoiceStatus): void {
+    this.updateStatusSubject.next({ id, status });
   }
 
   retry(): void {

@@ -7,6 +7,7 @@ import { InvoiceRepository } from '../../domain/repositories/invoice.repository'
 import { Invoice } from '../../domain/models/invoice.model';
 import { InvoiceDto } from '../dto/invoice.dto';
 import { InvoiceMapper } from '../mappers/invoice.mapper';
+import { InvoiceStatus } from '../../domain/models/invoice-status.enum';
 
 @Injectable({ providedIn: 'root' })
 export class InvoiceApiService implements InvoiceRepository {
@@ -89,6 +90,25 @@ export class InvoiceApiService implements InvoiceRepository {
         catchError((error) =>
           throwError(() => ({
             message: error?.message || 'Erro ao imprimir nota fiscal',
+            service: 'billing' as const,
+            status: error?.status,
+            originalError: error,
+          })),
+        ),
+      );
+  }
+
+  updateStatus(id: string, status: InvoiceStatus): Observable<Invoice> {
+    const statusValue = status === InvoiceStatus.Aberta ? 0 : 1;
+
+    return this.http
+      .patch<InvoiceDto>(`${this.baseUrl}/Invoices/${id}/status`, { status: statusValue })
+      .pipe(
+        this.retryWithBackoff<InvoiceDto>(),
+        map(InvoiceMapper.toDomain),
+        catchError((error) =>
+          throwError(() => ({
+            message: error?.message || 'Erro ao atualizar status da nota fiscal',
             service: 'billing' as const,
             status: error?.status,
             originalError: error,
