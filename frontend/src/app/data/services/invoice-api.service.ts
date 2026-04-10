@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, map, throwError, timer, MonoTypeOperatorFunction } from 'rxjs';
 import { catchError, retryWhen, take, scan, mergeMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -19,12 +20,21 @@ export class InvoiceApiService implements InvoiceRepository {
       errors.pipe(
         scan((acc, error) => {
           acc.count++;
+          acc.error = error;
           return acc;
-        }, { count: 0 }),
+        }, { count: 0, error: null as unknown }),
         take(environment.retryAttempts),
-        mergeMap((state) =>
-          timer(environment.retryDelayMs * Math.pow(2, state.count - 1)),
-        ),
+        mergeMap((state: { count: number; error: unknown }) => {
+          const httpError = state.error as HttpErrorResponse | undefined;
+          const status = httpError?.status;
+          const isRetryable = status === 0 || (status !== undefined && status >= 500);
+
+          if (!isRetryable) {
+            return throwError(() => state.error);
+          }
+
+          return timer(environment.retryDelayMs * Math.pow(2, state.count - 1));
+        }),
       ),
     ) as MonoTypeOperatorFunction<T>;
   }

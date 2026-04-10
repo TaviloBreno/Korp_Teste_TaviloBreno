@@ -93,26 +93,20 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
             <tr>
               <td>{{ inv.sequentialNumber }}</td>
               <td>
-                <span
-                  [class]="
-                    inv.status === InvoiceStatus.Aberta
-                      ? 'text-green-600 font-bold'
-                      : 'text-gray-500'
-                  "
-                  >{{ inv.status }}</span
+                <select
+                  class="w-full min-w-[130px] rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+                  [value]="inv.status"
+                  [disabled]="saving()"
+                  (change)="onStatusChange(inv, $any($event.target).value)"
                 >
+                  <option [value]="InvoiceStatus.Aberta">ABERTA</option>
+                  <option [value]="InvoiceStatus.Fechada">FECHADA</option>
+                </select>
               </td>
               <td>{{ inv.items.length }} produto(s)</td>
               <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>
                 <div class="flex items-center gap-2">
-                  <p-button
-                    [label]="inv.status === InvoiceStatus.Aberta ? 'Fechar' : 'Reabrir'"
-                    [severity]="inv.status === InvoiceStatus.Aberta ? 'warning' : 'secondary'"
-                    [outlined]="inv.status !== InvoiceStatus.Aberta"
-                    size="small"
-                    (onClick)="toggleStatus(inv)"
-                  />
                   <p-button
                     icon="pi pi-file-pdf"
                     severity="contrast"
@@ -134,7 +128,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
     >
       <form [formGroup]="invoiceForm" class="flex flex-col gap-6 pt-4 px-1 pb-2">
         <div class="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-          Selecione os produtos e quantidades para montar a nota. Ao emitir, a nota será fechada automaticamente.
+          Selecione os produtos e quantidades para montar a nota. Na emissão (PDF), a nota será fechada automaticamente.
         </div>
 
         <div formArrayName="items" class="flex flex-col gap-5">
@@ -202,7 +196,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
       <ng-template pTemplate="footer">
         <p-button label="Cancelar" icon="pi pi-times" text (onClick)="dialogVisible.set(false)" />
         <p-button
-          label="Emitir Nota"
+          label="Criar Nota"
           icon="pi pi-check"
           [disabled]="invoiceForm.invalid || saving()"
           (onClick)="saveInvoice()"
@@ -364,10 +358,11 @@ export class InvoicesPageComponent implements OnInit {
     });
   }
 
-  toggleStatus(inv: Invoice) {
+  onStatusChange(inv: Invoice, status: string) {
     const nextStatus =
-      inv.status === InvoiceStatus.Aberta ? InvoiceStatus.Fechada : InvoiceStatus.Aberta;
+      status === InvoiceStatus.Fechada ? InvoiceStatus.Fechada : InvoiceStatus.Aberta;
 
+    if (nextStatus === inv.status) return;
     this.invState.updateStatus(inv.id, nextStatus);
   }
 

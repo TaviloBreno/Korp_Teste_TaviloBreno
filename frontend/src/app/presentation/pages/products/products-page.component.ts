@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageService } from 'primeng/api';
@@ -22,6 +23,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
     DialogModule,
     ButtonModule,
     InputTextModule,
+    InputNumberModule,
     ToastModule,
     ProgressSpinnerModule,
     ErrorBoundaryComponent,
@@ -101,12 +103,15 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
           formControlName="description"
           placeholder="Descrição"
         />
-        <input
-          pInputText
-          type="number"
-          step="0.01"
+        <p-inputNumber
           formControlName="stockBalance"
           placeholder="Saldo Inicial"
+          mode="decimal"
+          [min]="0"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          inputStyleClass="w-full"
+          styleClass="w-full"
         />
         @if (productForm.get('stockBalance')?.hasError('min')) {
           <small class="text-red-500">Saldo deve ser >= 0</small>
