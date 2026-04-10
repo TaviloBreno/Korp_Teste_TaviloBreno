@@ -14,6 +14,7 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -38,6 +39,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
     DialogModule,
     ButtonModule,
     InputNumberModule,
+    InputTextModule,
     SelectModule,
     ToastModule,
     ProgressSpinnerModule,
@@ -63,6 +65,51 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
         <p-button label="Nova Nota" icon="pi pi-plus" (onClick)="openNew()" />
       </div>
 
+      <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          <div class="lg:col-span-6">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Busca</label>
+            <div class="relative">
+              <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+              <input
+                pInputText
+                class="w-full h-10 rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm"
+                placeholder="Procurar por número da nota"
+                [value]="invoiceSearch()"
+                (input)="invoiceSearch.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="lg:col-span-3">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+            <select
+              class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm"
+              [value]="invoiceStatusFilter()"
+              (change)="invoiceStatusFilter.set($any($event.target).value)"
+            >
+              <option value="ALL">Todos os status</option>
+              <option [value]="InvoiceStatus.Aberta">Abertas</option>
+              <option [value]="InvoiceStatus.Fechada">Fechadas</option>
+            </select>
+          </div>
+
+          <div class="lg:col-span-3">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Organizar por</label>
+            <select
+              class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm"
+              [value]="invoiceSort()"
+              (change)="invoiceSort.set($any($event.target).value)"
+            >
+              <option value="created_desc">Mais recentes</option>
+              <option value="created_asc">Mais antigas</option>
+              <option value="number_desc">Maior número</option>
+              <option value="number_asc">Menor número</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       @if (isInvoiceLoading()) {
         <div class="text-center p-8">
           <p-progressSpinner></p-progressSpinner>
@@ -79,7 +126,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
           />
         </div>
       } @else {
-        <p-table [value]="invoices() || []" responsiveLayout="scroll">
+        <p-table [value]="filteredInvoices() || []" responsiveLayout="scroll">
           <ng-template pTemplate="header">
             <tr>
               <th>Nº</th>
@@ -114,6 +161,14 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                     (onClick)="openPdfConfirmation(inv)"
                   />
                 </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="text-center py-6 text-gray-500">
+                Nenhuma nota fiscal encontrada para os filtros selecionados.
               </td>
             </tr>
           </ng-template>
@@ -222,7 +277,7 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
               severity="secondary"
               (onClick)="printModalVisible.set(false)"
             />
-            <p-button label="Baixar PDF" icon="pi pi-file-pdf" (onClick)="confirmPrint()" />
+            <p-button label="Emitir Nota" icon="pi pi-file-pdf" (onClick)="confirmPrint()" />
           </div>
         }
       </div>
@@ -238,13 +293,53 @@ export class InvoicesPageComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private pdfService = inject(InvoicePdfService);
 
-  // ✅ Expondo o enum para o template HTML
   readonly InvoiceStatus = InvoiceStatus;
 
   readonly invoices = this.invState.data;
   readonly products = this.prodState.data;
   readonly isInvoiceLoading = this.invState.isLoading;
   readonly isProductLoading = this.prodState.isLoading;
+
+  readonly invoiceSearch = signal('');
+  readonly invoiceStatusFilter = signal<'ALL' | InvoiceStatus>('ALL');
+  readonly invoiceSort = signal<'created_desc' | 'created_asc' | 'number_desc' | 'number_asc'>('created_desc');
+
+  readonly filteredInvoices = computed(() => {
+    const term = this.invoiceSearch().trim().toLowerCase();
+    const statusFilter = this.invoiceStatusFilter();
+    const sort = this.invoiceSort();
+
+    let result = [...(this.invoices() || [])];
+
+    if (statusFilter !== 'ALL') {
+      result = result.filter((invoice) => invoice.status === statusFilter);
+    }
+
+    if (term) {
+      result = result.filter((invoice) =>
+        String(invoice.sequentialNumber).includes(term),
+      );
+    }
+
+    result.sort((a, b) => {
+      const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      switch (sort) {
+        case 'created_asc':
+          return aCreated - bCreated;
+        case 'number_asc':
+          return a.sequentialNumber - b.sequentialNumber;
+        case 'number_desc':
+          return b.sequentialNumber - a.sequentialNumber;
+        case 'created_desc':
+        default:
+          return bCreated - aCreated;
+      }
+    });
+
+    return result;
+  });
 
   readonly invoiceError = this.invState.error;
   readonly productError = this.prodState.error;

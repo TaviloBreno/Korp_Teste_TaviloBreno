@@ -42,6 +42,40 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
         <p-button label="Novo Produto" icon="pi pi-plus" (onClick)="openNew()" />
       </div>
 
+      <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div class="md:col-span-8">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Busca</label>
+            <div class="relative">
+              <i class="pi pi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10"></i>
+              <input
+                pInputText
+                class="w-full h-10 rounded-lg border border-gray-300 bg-white pl-11 pr-3 text-sm"
+                placeholder="Procurar por código ou descrição"
+                [value]="productSearch()"
+                (input)="productSearch.set($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="md:col-span-4">
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Organizar por</label>
+            <select
+              class="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm"
+              [value]="productSort()"
+              (change)="productSort.set($any($event.target).value)"
+            >
+              <option value="created_desc">Mais recentes</option>
+              <option value="created_asc">Mais antigos</option>
+              <option value="code_asc">Código (A-Z)</option>
+              <option value="code_desc">Código (Z-A)</option>
+              <option value="stock_desc">Maior saldo</option>
+              <option value="stock_asc">Menor saldo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       @if (isLoading()) {
         <div class="text-center p-8">
           <p-progressSpinner></p-progressSpinner>
@@ -59,10 +93,9 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
         </div>
       } @else {
         <p-table
-          [value]="products() || []"
+          [value]="filteredProducts() || []"
           [paginator]="true"
           [rows]="10"
-          [globalFilterFields]="['code', 'description']"
           responsiveLayout="scroll"
         >
           <ng-template pTemplate="header">
@@ -83,6 +116,14 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
                   <p-button icon="pi pi-pencil" (onClick)="editProduct(product)" text />
                   <p-button icon="pi pi-trash" severity="danger" text (onClick)="confirmDelete(product)" />
                 </div>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center py-6 text-gray-500">
+                Nenhum produto encontrado para os filtros selecionados.
               </td>
             </tr>
           </ng-template>
@@ -143,6 +184,45 @@ export class ProductsPageComponent implements OnInit {
   readonly products = this.state.data;
   readonly isLoading = this.state.isLoading;
   readonly error = this.state.error;
+
+  readonly productSearch = signal('');
+  readonly productSort = signal<'created_desc' | 'created_asc' | 'code_asc' | 'code_desc' | 'stock_desc' | 'stock_asc'>('created_desc');
+
+  readonly filteredProducts = computed(() => {
+    const term = this.productSearch().trim().toLowerCase();
+    const sort = this.productSort();
+    let result = [...(this.products() || [])];
+
+    if (term) {
+      result = result.filter((product) =>
+        product.code.toLowerCase().includes(term) ||
+        product.description.toLowerCase().includes(term),
+      );
+    }
+
+    result.sort((a, b) => {
+      const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      switch (sort) {
+        case 'created_asc':
+          return aCreated - bCreated;
+        case 'code_asc':
+          return a.code.localeCompare(b.code);
+        case 'code_desc':
+          return b.code.localeCompare(a.code);
+        case 'stock_asc':
+          return a.stockBalance - b.stockBalance;
+        case 'stock_desc':
+          return b.stockBalance - a.stockBalance;
+        case 'created_desc':
+        default:
+          return bCreated - aCreated;
+      }
+    });
+
+    return result;
+  });
 
   readonly saving = computed(() => this.isLoading());
   readonly dialogVisible: WritableSignal<boolean> = signal(false);
