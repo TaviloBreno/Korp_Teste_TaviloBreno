@@ -1,0 +1,6 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="160" height="160" rx="34" fill="#134E4A"/>
+  <circle cx="80" cy="62" r="34" fill="#14B8A6"/>
+  <path d="M62 49H74.5V73.5H86.5L102 49H116L97.5 78.5L118 111H104L86.5 83.5H74.5V111H62V49Z" fill="#F8FAFC"/>
+  <text x="80" y="135" text-anchor="middle" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">KORP</text>
+</svg>
