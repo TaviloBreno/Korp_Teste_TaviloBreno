@@ -59,11 +59,14 @@ export class InvoicePdfService {
 
     const pdfBlob = doc.output('blob');
     const previewUrl = URL.createObjectURL(pdfBlob);
-    const previewWindow = window.open(previewUrl, '_blank', 'noopener,noreferrer');
-
-    if (!previewWindow) {
-      doc.save(`nota-fiscal-${invoice.sequentialNumber}.pdf`);
-    }
+    const anchor = document.createElement('a');
+    anchor.href = previewUrl;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
 
     window.setTimeout(() => URL.revokeObjectURL(previewUrl), 60000);
   }
