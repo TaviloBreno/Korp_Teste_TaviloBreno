@@ -50,5 +50,17 @@ namespace InventoryService.Domain.Entities
             StockBalance = stockBalance >= 0 ? stockBalance : StockBalance;
             UpdatedAt = DateTime.UtcNow;
         }
+
+        public void DeductStock(int quantity)
+        {
+            if (quantity <= 0)
+                throw new ArgumentException("Quantity must be positive.", nameof(quantity));
+
+            if (StockBalance < quantity)
+                throw new InvalidOperationException($"Insufficient stock. Available: {StockBalance}, Requested: {quantity}");
+
+            StockBalance -= quantity;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

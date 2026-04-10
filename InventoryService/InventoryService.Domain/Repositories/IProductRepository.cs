@@ -13,7 +13,7 @@ namespace InventoryService.Domain.Repositories
         Task<Product?> GetByCodeAsync(string code, CancellationToken cancellationToken = default);
         Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default);
         Task AddAsync(Product product, CancellationToken cancellationToken = default);
-        void Update(Product product);
+        Task UpdateAsync(Product product, CancellationToken cancellationToken = default);
         Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
     }
 }
