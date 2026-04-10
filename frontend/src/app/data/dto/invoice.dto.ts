@@ -1,13 +1,15 @@
 export interface InvoiceItemDto {
-  produto_id: string;
-  quantidade: number;
+  id?: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
 }
 
 export interface InvoiceDto {
   id: string;
-  numeracao_sequencial: number;
-  status: 'ABERTA' | 'FECHADA';
-  itens: InvoiceItemDto[];
-  criado_em: string;
-  atualizado_em: string;
+  sequentialNumber: number;
+  status: 0 | 1 | 'ABERTA' | 'FECHADA';
+  items: InvoiceItemDto[];
+  createdAt: string;
+  updatedAt?: string;
 }
