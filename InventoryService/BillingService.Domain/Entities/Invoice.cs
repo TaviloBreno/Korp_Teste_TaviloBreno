@@ -18,18 +18,20 @@ namespace BillingService.Domain.Entities
 
         public ICollection<InvoiceItem> Items { get; private set; } = new List<InvoiceItem>();
 
-        private Invoice() { }
+        public Invoice()
+        {
+            Id = Guid.NewGuid();
+            Status = InvoiceStatus.Open;
+            CreatedAt = DateTime.UtcNow;
+            TotalAmount = 0;
+        }
 
-        public Invoice(int sequentialNumber)
+        public Invoice(int sequentialNumber) : this()
         {
             if (sequentialNumber <= 0)
                 throw new ArgumentException("Sequential number must be positive.", nameof(sequentialNumber));
 
-            Id = Guid.NewGuid();
             SequentialNumber = sequentialNumber;
-            Status = InvoiceStatus.Open;
-            CreatedAt = DateTime.UtcNow;
-            TotalAmount = 0;
         }
 
         public void AddItem(InvoiceItem item)

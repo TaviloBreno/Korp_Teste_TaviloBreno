@@ -27,9 +27,7 @@ namespace BillingService.Application.Services
         {
             _logger.LogInformation("Creating new invoice with {ItemCount} items", dto.Items.Count());
 
-            var sequentialNumber = await _repository.GetNextSequentialNumberAsync(cancellationToken);
-
-            var invoice = new Invoice(sequentialNumber);
+            var invoice = new Invoice();
 
             foreach (var itemDto in dto.Items)
             {
@@ -72,16 +70,54 @@ namespace BillingService.Application.Services
                 ?? throw new InvalidOperationException($"Invoice with ID '{id}' not found.");
 
             if (invoice.Status != InvoiceStatus.Open)
-                throw new InvalidOperationException($"Invoice {invoice.SequentialNumber} is already closed.");
+                throw new InvalidOperationException(
+                    $"Invoice {invoice.SequentialNumber} is already closed. Only open invoices can be printed.");
+
+            if (!invoice.Items.Any())
+                throw new InvalidOperationException(
+                    $"Cannot close invoice {invoice.SequentialNumber} without items.");
 
             foreach (var item in invoice.Items)
             {
                 _logger.LogInformation("Deducting {Quantity} from product {ProductId}",
                     item.Quantity, item.ProductId);
 
-                var success = await _inventoryClient.DeductStockAsync(item.ProductId, item.Quantity, cancellationToken);
-                if (!success)
-                    throw new InvalidOperationException($"Failed to deduct stock for product {item.ProductId}.");
+                try
+                {
+                    var success = await _inventoryClient.DeductStockAsync(
+                        item.ProductId,
+                        item.Quantity,
+                        cancellationToken);
+
+                    if (!success)
+                    {
+                        _logger.LogError("Failed to deduct stock for product {ProductId}. Rolling back...",
+                            item.ProductId);
+
+                        throw new InvalidOperationException(
+                            $"Failed to deduct stock for product {item.ProductId}. " +
+                            "The InventoryService may be unavailable or product has insufficient stock.");
+                    }
+
+                    _logger.LogInformation("Successfully deducted stock for product {ProductId}", item.ProductId);
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogError(ex, "InventoryService unavailable while deducting stock for product {ProductId}",
+                        item.ProductId);
+
+                    throw new InvalidOperationException(
+                        "InventoryService is currently unavailable. Please try again later. " +
+                        "The invoice was NOT closed.", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error deducting stock for product {ProductId}",
+                        item.ProductId);
+
+                    throw new InvalidOperationException(
+                        $"Error processing stock deduction for product {item.ProductId}", ex);
+                }
             }
 
             invoice.Close();
