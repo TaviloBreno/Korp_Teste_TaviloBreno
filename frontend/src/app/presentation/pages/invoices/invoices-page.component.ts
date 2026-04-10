@@ -21,6 +21,7 @@ import { MessageService } from 'primeng/api';
 import { debounceTime } from 'rxjs';
 import { InvoiceStateService } from '../../state/invoice-state.service';
 import { ProductStateService } from '../../state/product-state.service';
+import { InvoicePdfService } from '../../services/invoice-pdf.service';
 import { Product } from '../../../domain/models/product.model';
 import { Invoice } from '../../../domain/models/invoice.model';
 import { InvoiceStatus } from '../../../domain/models/invoice-status.enum';
@@ -105,9 +106,9 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
               <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
               <td>
                 <p-button
-                  icon="pi pi-print"
+                  icon="pi pi-file-pdf"
                   [disabled]="inv.status !== InvoiceStatus.Aberta"
-                  (onClick)="printInvoice(inv)"
+                  (onClick)="openPdfConfirmation(inv)"
                 />
               </td>
             </tr>
@@ -175,23 +176,23 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
 
     <p-dialog
       [(visible)]="printModalVisible"
-      header="Confirmar Impressão"
+      header="Gerar PDF da Nota"
       [modal]="true"
       [closable]="false"
     >
       <div class="flex flex-col items-center gap-4 py-4">
         @if (printing()) {
           <p-progressSpinner />
-          <p>Processando nota e deduzindo estoque...</p>
+          <p>Gerando PDF, processando nota e deduzindo estoque...</p>
         } @else {
-          <p>Nota #{{ selectedInvoice()?.sequentialNumber }} está pronta.</p>
+          <p>Nota #{{ selectedInvoice()?.sequentialNumber }} pronta para download.</p>
           <div class="flex gap-2">
             <p-button
               label="Cancelar"
               severity="secondary"
               (onClick)="printModalVisible.set(false)"
             />
-            <p-button label="Imprimir & Fechar" icon="pi pi-print" (onClick)="confirmPrint()" />
+            <p-button label="Baixar PDF" icon="pi pi-file-pdf" (onClick)="confirmPrint()" />
           </div>
         }
       </div>
@@ -205,6 +206,7 @@ export class InvoicesPageComponent implements OnInit {
   private fb = inject(FormBuilder);
   private msg = inject(MessageService);
   private destroyRef = inject(DestroyRef);
+  private pdfService = inject(InvoicePdfService);
 
   // ✅ Expondo o enum para o template HTML
   readonly InvoiceStatus = InvoiceStatus;
@@ -310,7 +312,7 @@ export class InvoicesPageComponent implements OnInit {
     this.dialogVisible.set(false);
   }
 
-  printInvoice(inv: Invoice) {
+  openPdfConfirmation(inv: Invoice) {
     if (inv.status !== InvoiceStatus.Aberta) return;
     this.selectedInvoice.set(inv);
     this.printModalVisible.set(true);
@@ -321,7 +323,7 @@ export class InvoicesPageComponent implements OnInit {
     const inv = this.selectedInvoice();
     if (!inv) return;
 
-    this.invState.print(inv.id);
+    this.pdfService.generate(inv);
     this.printModalVisible.set(false);
   }
 
