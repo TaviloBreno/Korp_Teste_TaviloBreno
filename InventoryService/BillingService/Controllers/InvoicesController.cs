@@ -78,5 +78,30 @@ namespace BillingService.Api.Controllers
                 return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
             }
         }
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(InvoiceDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateInvoiceStatusDto dto, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _service.UpdateStatusAsync(id, dto.Status, cancellationToken);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error updating status of invoice {InvoiceId}: {Message}", id, ex.Message);
+                return ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                    ? NotFound(new { error = ex.Message })
+                    : BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error updating status of invoice {InvoiceId}", id);
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
+            }
+        }
     }
 }

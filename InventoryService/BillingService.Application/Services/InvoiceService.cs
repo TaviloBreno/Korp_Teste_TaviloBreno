@@ -129,6 +129,30 @@ namespace BillingService.Application.Services
             return MapToDto(invoice);
         }
 
+        public async Task<InvoiceDto> UpdateStatusAsync(Guid id, InvoiceStatus status, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Updating status of invoice {InvoiceId} to {Status}", id, status);
+
+            var invoice = await _repository.GetByIdAsync(id, cancellationToken)
+                ?? throw new InvalidOperationException($"Invoice with ID '{id}' not found.");
+
+            if (status == InvoiceStatus.Closed && invoice.Status == InvoiceStatus.Open)
+            {
+                invoice.Close();
+            }
+            else if (status == InvoiceStatus.Open && invoice.Status == InvoiceStatus.Closed)
+            {
+                invoice.Reopen();
+            }
+
+            _repository.Update(invoice);
+
+            _logger.LogInformation("Invoice {SequentialNumber} status updated to {Status}",
+                invoice.SequentialNumber, invoice.Status);
+
+            return MapToDto(invoice);
+        }
+
         private static InvoiceDto MapToDto(Invoice invoice) => new(
             invoice.Id,
             invoice.SequentialNumber,

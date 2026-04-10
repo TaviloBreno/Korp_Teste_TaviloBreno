@@ -1,4 +1,5 @@
 ﻿using BillingService.Application.DTOs;
+using BillingService.Domain.Enums;
 
 namespace BillingService.Application.Interfaces
 {
@@ -8,5 +9,6 @@ namespace BillingService.Application.Interfaces
         Task<InvoiceDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<IEnumerable<InvoiceDto>> GetAllAsync(CancellationToken cancellationToken = default);
         Task<InvoiceDto> PrintAsync(Guid id, CancellationToken cancellationToken = default);
+        Task<InvoiceDto> UpdateStatusAsync(Guid id, InvoiceStatus status, CancellationToken cancellationToken = default);
     }
 }

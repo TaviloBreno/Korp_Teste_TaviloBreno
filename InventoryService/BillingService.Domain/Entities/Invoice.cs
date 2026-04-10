@@ -55,6 +55,15 @@ namespace BillingService.Domain.Entities
             ClosedAt = DateTime.UtcNow;
         }
 
+        public void Reopen()
+        {
+            if (Status != InvoiceStatus.Closed)
+                throw new InvalidOperationException("Invoice is already open.");
+
+            Status = InvoiceStatus.Open;
+            ClosedAt = null;
+        }
+
         private void RecalculateTotal()
         {
             TotalAmount = Items.Sum(i => i.Quantity * i.UnitPrice);

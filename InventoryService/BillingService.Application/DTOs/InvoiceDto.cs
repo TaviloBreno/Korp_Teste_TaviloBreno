@@ -33,4 +33,8 @@ namespace BillingService.Application.DTOs
         int Quantity,
         decimal UnitPrice
     );
+
+    public record UpdateInvoiceStatusDto(
+        InvoiceStatus Status
+    );
 }
