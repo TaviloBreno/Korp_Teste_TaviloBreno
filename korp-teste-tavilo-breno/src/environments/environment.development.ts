@@ -4,5 +4,5 @@ export const environment = {
   billingApiUrl: 'http://localhost:3001/billing',
   retryAttempts: 1,
   retryDelayMs: 500,
-  mockDownService: null,
+  mockDownService: null as 'inventory' | 'billing' | null,
 };
