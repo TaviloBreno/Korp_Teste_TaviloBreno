@@ -169,6 +169,7 @@ export class ProductsPageComponent implements OnInit {
   openNew() {
     this.productForm.reset({ stockBalance: 0 });
     this.isEdit.set(false);
+    this.editingId.set(null);
     this.dialogVisible.set(true);
   }
 
@@ -195,6 +196,8 @@ export class ProductsPageComponent implements OnInit {
   }
 
   hideDialog() {
+    this.editingId.set(null);
+    this.isEdit.set(false);
     this.dialogVisible.set(false);
   }
 

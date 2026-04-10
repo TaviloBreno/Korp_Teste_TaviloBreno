@@ -8,6 +8,8 @@ export class ProductMapper {
       code: dto.code ?? (dto as any).codigo,
       description: dto.description ?? (dto as any).descricao,
       stockBalance: dto.stockBalance ?? (dto as any).saldo,
+      createdAt: dto.createdAt,
+      updatedAt: dto.updatedAt ?? null,
     };
   }
 

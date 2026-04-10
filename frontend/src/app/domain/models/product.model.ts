@@ -3,4 +3,6 @@ export interface Product {
   code: string;
   description: string;
   stockBalance: number;
+  createdAt?: string;
+  updatedAt?: string | null;
 }

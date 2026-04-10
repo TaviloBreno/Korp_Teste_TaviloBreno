@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BaseStateService } from '../../shared/state/base-state.service';
 import { ProductApiService } from '../../data/services/product-api.service';
 import { Product } from '../../domain/models/product.model';
-import { Observable, Subject, switchMap, finalize, tap, catchError, of } from 'rxjs';
+import { Observable, Subject, switchMap, finalize, tap, catchError, of, map } from 'rxjs';
 import { LoadingService } from '../../core/services/loading.service';
 import { MessageService } from 'primeng/api';
 
@@ -17,7 +17,15 @@ export class ProductStateService extends BaseStateService<Product[]> {
   private updateSubject = new Subject<{ id: string; product: Partial<Product> }>();
 
   protected fetchData(): Observable<Product[]> {
-    return this.api.getAll();
+    return this.api.getAll().pipe(
+      map((products) =>
+        [...products].sort((left, right) => {
+          const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+          const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+          return rightTime - leftTime;
+        }),
+      ),
+    );
   }
 
   private resolveError(error: any, fallbackMessage: string): string {
