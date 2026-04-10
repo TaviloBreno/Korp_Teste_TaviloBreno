@@ -1,6 +1,6 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { Observable } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Injectable, signal, computed, Signal } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 export interface State<T> {
   data: T | null;
@@ -10,31 +10,39 @@ export interface State<T> {
 
 @Injectable({ providedIn: 'root' })
 export abstract class BaseStateService<T> {
-  protected destroyRef = inject(DestroyRef);
+  protected _state = signal<State<T>>({ data: null, loading: false, error: null });
 
-  protected state = signal<State<T>>({ data: null, loading: false, error: null });
-
-  readonly data = computed(() => this.state().data);
-  readonly isLoading = computed(() => this.state().loading);
-  readonly error = computed(() => this.state().error);
+  readonly state: Signal<State<T>> = this._state.asReadonly();
+  readonly data: Signal<T | null> = computed(() => this._state().data);
+  readonly isLoading: Signal<boolean> = computed(() => this._state().loading);
+  readonly error: Signal<string | null> = computed(() => this._state().error);
 
   protected abstract fetchData(): Observable<T>;
 
   load(): void {
-    this.state.update((s) => ({ ...s, loading: true, error: null }));
-
+    this._state.update((s) => ({ ...s, loading: true, error: null }));
     this.fetchData()
       .pipe(
-        takeUntilDestroyed(this.destroyRef),
+        catchError((err) => {
+          this._state.update((s) => ({
+            ...s,
+            loading: false,
+            error: err.message || 'Erro de comunicação',
+          }));
+          return of(null as unknown as T);
+        }),
+        finalize(() => {
+          this._state.update((s) => (s.loading ? { ...s, loading: false } : s));
+        }),
       )
-      .subscribe({
-        next: (data: T) => {
-          this.state.update((s) => ({ ...s, loading: false, data, error: null }));
-        },
-        error: (err: unknown) => {
-          const msg = err instanceof Error ? err.message : 'Falha ao carregar dados';
-          this.state.update((s) => ({ ...s, loading: false, error: msg }));
-        },
+      .subscribe((result) => {
+        if (result !== null) {
+          this._state.update((s) => ({ ...s, loading: false, data: result, error: null }));
+        }
       });
+  }
+
+  clearError(): void {
+    this._state.update((s) => ({ ...s, error: null }));
   }
 }
