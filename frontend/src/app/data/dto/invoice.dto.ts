@@ -11,5 +11,7 @@ export interface InvoiceDto {
   status: 0 | 1 | 'ABERTA' | 'FECHADA';
   items: InvoiceItemDto[];
   createdAt: string;
+  closedAt?: string | null;
   updatedAt?: string;
+  totalAmount?: number;
 }

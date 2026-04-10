@@ -13,9 +13,15 @@ export class InvoiceMapper {
       id: dto.id,
       sequentialNumber: dto.sequentialNumber,
       status,
-      items: dto.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: dto.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+      })),
       createdAt: dto.createdAt,
+      closedAt: dto.closedAt ?? null,
       updatedAt: dto.updatedAt ?? dto.createdAt,
+      totalAmount: dto.totalAmount,
     };
   }
 
