@@ -1,0 +1,326 @@
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  WritableSignal,
+  computed,
+  DestroyRef,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { TableModule } from 'primeng/table';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { ToastModule } from 'primeng/toast';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { MessageService } from 'primeng/api';
+import { debounceTime } from 'rxjs';
+import { InvoiceStateService } from '../../state/invoice-state.service';
+import { ProductStateService } from '../../state/product-state.service';
+import { Product } from '../../../domain/models/product.model';
+import { Invoice, InvoiceItem } from '../../../domain/models/invoice.model';
+import { InvoiceStatus } from '../../../domain/models/invoice-status.enum';
+import { stockValidator } from '../../../shared/validators/stock.validator';
+import { ErrorBoundaryComponent } from '../../components/error-boundary.component';
+
+@Component({
+  selector: 'app-invoices-page',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TableModule,
+    DialogModule,
+    ButtonModule,
+    InputNumberModule,
+    SelectModule,
+    ToastModule,
+    ProgressSpinnerModule,
+    ErrorBoundaryComponent,
+  ],
+  providers: [MessageService],
+  template: `
+    <app-error-boundary
+      [error]="invoiceErrorState()"
+      (retry)="onInvoiceRetry()"
+      (close)="clearInvoiceError()"
+    ></app-error-boundary>
+
+    <app-error-boundary
+      [error]="productErrorState()"
+      (retry)="onProductRetry()"
+      (close)="clearProductError()"
+    ></app-error-boundary>
+
+    <div class="card p-4">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">Notas Fiscais</h2>
+        <p-button label="Nova Nota" icon="pi pi-plus" (onClick)="openNew()" />
+      </div>
+
+      @if (isInvoiceLoading()) {
+        <div class="text-center p-8">
+          <p-progressSpinner></p-progressSpinner>
+          <p class="mt-3">Carregando notas fiscais...</p>
+        </div>
+      } @else if ((invoices() || []).length === 0) {
+        <div class="text-center p-8 text-gray-500">
+          <p class="text-lg">Nenhuma nota fiscal criada</p>
+          <p-button
+            label="Criar Primeira Nota"
+            icon="pi pi-plus"
+            (onClick)="openNew()"
+            styleClass="mt-3"
+          />
+        </div>
+      } @else {
+        <p-table [value]="invoices() || []" responsiveLayout="scroll">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Nº</th>
+              <th>Status</th>
+              <th>Itens</th>
+              <th>Criado em</th>
+              <th>Ações</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-inv>
+            <tr>
+              <td>{{ inv.sequentialNumber }}</td>
+              <td>
+                <span
+                  [class]="
+                    inv.status === InvoiceStatus.Aberta
+                      ? 'text-green-600 font-bold'
+                      : 'text-gray-500'
+                  "
+                  >{{ inv.status }}</span
+                >
+              </td>
+              <td>{{ inv.items.length }} produto(s)</td>
+              <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <p-button
+                  icon="pi pi-print"
+                  [disabled]="inv.status !== InvoiceStatus.Aberta"
+                  (onClick)="printInvoice(inv)"
+                />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+
+    <p-dialog
+      [(visible)]="dialogVisible"
+      header="Nova Nota Fiscal"
+      [modal]="true"
+      [style]="{ width: '700px' }"
+    >
+      <form [formGroup]="invoiceForm" class="flex flex-col gap-4 mt-3">
+        <div formArrayName="items" class="flex flex-col gap-2">
+          @for (item of items.controls; track item; let i = $index) {
+            <div [formGroupName]="i" class="flex gap-2 items-center bg-gray-50 p-2 rounded">
+              <p-select
+                formControlName="productId"
+                [options]="products() || []"
+                optionLabel="description"
+                optionValue="id"
+                placeholder="Produto"
+                styleClass="w-1/3"
+              />
+              <p-inputNumber
+                formControlName="quantity"
+                placeholder="Qtd"
+                [showButtons]="true"
+                styleClass="w-1/4"
+              />
+              <small class="text-sm text-gray-500"
+                >Saldo: {{ getStock(item.value.productId) }}</small
+              >
+              <p-button icon="pi pi-trash" severity="danger" text (onClick)="removeItem(i)" />
+              @if (item.hasError('stockExceeded')) {
+                <small class="text-red-500"
+                  >Excede estoque ({{ item.getError('stockExceeded')?.available }})</small
+                >
+              }
+            </div>
+          }
+        </div>
+        <p-button label="Adicionar Item" icon="pi pi-plus" text (onClick)="addItem()" />
+      </form>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" text (onClick)="dialogVisible.set(false)" />
+        <p-button
+          label="Gerar Nota"
+          icon="pi pi-check"
+          [disabled]="invoiceForm.invalid || saving()"
+          (onClick)="saveInvoice()"
+        />
+      </ng-template>
+    </p-dialog>
+
+    <p-dialog
+      [(visible)]="printModalVisible"
+      header="Confirmar Impressão"
+      [modal]="true"
+      [closable]="false"
+    >
+      <div class="flex flex-col items-center gap-4 py-4">
+        @if (printing()) {
+          <p-progressSpinner />
+          <p>Processando nota e deduzindo estoque...</p>
+        } @else {
+          <p>Nota #{{ selectedInvoice()?.sequentialNumber }} está pronta.</p>
+          <div class="flex gap-2">
+            <p-button
+              label="Cancelar"
+              severity="secondary"
+              (onClick)="printModalVisible.set(false)"
+            />
+            <p-button label="Imprimir & Fechar" icon="pi pi-print" (onClick)="confirmPrint()" />
+          </div>
+        }
+      </div>
+    </p-dialog>
+    <p-toast />
+  `,
+})
+export class InvoicesPageComponent implements OnInit {
+  private invState = inject(InvoiceStateService);
+  private prodState = inject(ProductStateService);
+  private fb = inject(FormBuilder);
+  private msg = inject(MessageService);
+  private destroyRef = inject(DestroyRef);
+
+  // ✅ Expondo o enum para o template HTML
+  readonly InvoiceStatus = InvoiceStatus;
+
+  readonly invoices = this.invState.data;
+  readonly products = this.prodState.data;
+  readonly isInvoiceLoading = this.invState.isLoading;
+  readonly isProductLoading = this.prodState.isLoading;
+
+  readonly invoiceError = this.invState.error;
+  readonly productError = this.prodState.error;
+
+  readonly invoiceErrorState = computed(() => {
+    const err = this.invoiceError();
+    return err
+      ? {
+          message: err,
+          service: 'billing' as const,
+          timestamp: new Date(),
+          status: 503,
+        }
+      : null;
+  });
+
+  readonly productErrorState = computed(() => {
+    const err = this.productError();
+    return err
+      ? {
+          message: err,
+          service: 'inventory' as const,
+          timestamp: new Date(),
+          status: 503,
+        }
+      : null;
+  });
+
+  readonly dialogVisible: WritableSignal<boolean> = signal(false);
+  readonly printModalVisible: WritableSignal<boolean> = signal(false);
+  readonly selectedInvoice = signal<Invoice | null>(null);
+  readonly saving = computed(() => this.isInvoiceLoading());
+  readonly printing = computed(() => this.isInvoiceLoading());
+
+  invoiceForm: FormGroup = this.fb.group({ items: this.fb.array([]) });
+  get items(): FormArray {
+    return this.invoiceForm.get('items') as FormArray;
+  }
+
+  ngOnInit() {
+    this.invState.load();
+    this.prodState.load();
+
+    this.invState.inventoryRefreshRequested$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.prodState.load());
+  }
+
+  openNew() {
+    this.invoiceForm.reset({ items: [] });
+    this.dialogVisible.set(true);
+    this.addItem();
+  }
+
+  addItem() {
+    const prodControl = this.fb.control('', Validators.required);
+    const qtyControl = this.fb.control(1, [Validators.required, Validators.min(1)]);
+
+    prodControl.valueChanges.pipe(debounceTime(200)).subscribe((prodId: string | null) => {
+      if (!prodId) return;
+      const stock = this.getStock(prodId);
+      qtyControl.clearValidators();
+      qtyControl.setValidators([Validators.required, Validators.min(1), stockValidator(stock)]);
+      qtyControl.updateValueAndValidity();
+    });
+
+    this.items.push(this.fb.group({ productId: prodControl, quantity: qtyControl }));
+  }
+
+  removeItem(i: number) {
+    this.items.removeAt(i);
+  }
+
+  getStock(productId: string | null): number {
+    if (!productId) return 0;
+    return (this.products() || []).find((p: Product) => p.id === productId)?.stockBalance ?? 0;
+  }
+
+  saveInvoice() {
+    if (this.invoiceForm.invalid || this.saving()) return;
+    const items: InvoiceItem[] = this.items.value.map((i: any) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+    }));
+
+    this.invState.create({ items });
+    this.dialogVisible.set(false);
+  }
+
+  printInvoice(inv: Invoice) {
+    if (inv.status !== InvoiceStatus.Aberta) return;
+    this.selectedInvoice.set(inv);
+    this.printModalVisible.set(true);
+  }
+
+  confirmPrint() {
+    if (this.printing()) return;
+    const inv = this.selectedInvoice();
+    if (!inv) return;
+
+    this.invState.print(inv.id);
+    this.printModalVisible.set(false);
+  }
+
+  onInvoiceRetry() {
+    this.invState.retry();
+  }
+
+  onProductRetry() {
+    this.prodState.retry();
+  }
+
+  clearInvoiceError() {
+    this.invState.clearError();
+  }
+
+  clearProductError() {
+    this.prodState.clearError();
+  }
+}
