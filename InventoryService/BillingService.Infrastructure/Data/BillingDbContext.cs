@@ -1,5 +1,6 @@
 ﻿using BillingService.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace BillingService.Infrastructure.Data
 {
@@ -19,19 +20,15 @@ namespace BillingService.Infrastructure.Data
                 entity.HasKey(i => i.Id);
 
                 entity.Property(i => i.SequentialNumber)
-                    .ValueGeneratedOnAdd()
-                    .UseIdentityColumn(1, 1);
+                    .ValueGeneratedOnAdd()              
+                    .UseIdentityColumn(1, 1)            
+                    .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore); 
 
-                entity.Property(i => i.Status)
-                    .IsRequired();
-                entity.Property(i => i.TotalAmount)
-                    .HasColumnType("decimal(18,2)");
-                
-                entity.HasIndex(i => i.SequentialNumber)
-                    .IsUnique();
-                entity.HasMany(i => i.Items)
-                    .WithOne()
-                    .HasForeignKey(i => i.InvoiceId);
+                entity.Property(i => i.Status).IsRequired();
+                entity.Property(i => i.TotalAmount).HasColumnType("decimal(18,2)");
+
+                entity.HasIndex(i => i.SequentialNumber).IsUnique();
+                entity.HasMany(i => i.Items).WithOne().HasForeignKey(i => i.InvoiceId);
             });
 
             modelBuilder.Entity<InvoiceItem>(entity =>
