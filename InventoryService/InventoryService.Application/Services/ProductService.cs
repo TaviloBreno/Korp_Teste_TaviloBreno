@@ -49,6 +49,16 @@ namespace InventoryService.Application.Services
             return MapToDto(product);
         }
 
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("Deleting product {ProductId}", id);
+
+            var product = await _repository.GetByIdAsync(id, cancellationToken)
+                ?? throw new InvalidOperationException($"Product with id '{id}' not found.");
+
+            await _repository.DeleteAsync(product, cancellationToken);
+        }
+
         public async Task<ProductDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var product = await _repository.GetByIdAsync(id, cancellationToken);

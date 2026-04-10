@@ -14,6 +14,7 @@ namespace InventoryService.Domain.Repositories
         Task<IEnumerable<Product>> GetAllAsync(CancellationToken cancellationToken = default);
         Task AddAsync(Product product, CancellationToken cancellationToken = default);
         Task UpdateAsync(Product product, CancellationToken cancellationToken = default);
+        Task DeleteAsync(Product product, CancellationToken cancellationToken = default);
         Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default);
     }
 }

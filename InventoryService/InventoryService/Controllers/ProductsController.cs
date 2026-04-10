@@ -65,7 +65,26 @@ namespace InventoryService.Api.Controllers
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning("Validation error updating product {ProductId}: {Message}", id, ex.Message);
-                return BadRequest(new { error = ex.Message });
+                return ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                    ? NotFound(new { error = ex.Message })
+                    : BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _service.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error deleting product {ProductId}: {Message}", id, ex.Message);
+                return NotFound(new { error = ex.Message });
             }
         }
 
