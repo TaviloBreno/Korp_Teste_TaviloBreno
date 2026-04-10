@@ -62,7 +62,7 @@ export class InvoiceApiService implements InvoiceRepository {
       );
   }
 
-  create(invoiceData: { items: { productId: string; quantity: number }[] }): Observable<Invoice> {
+  create(invoiceData: { items: { productId: string; quantity: number; unitPrice: number }[] }): Observable<Invoice> {
     const dto = InvoiceMapper.toDto(invoiceData.items);
     return this.http
       .post<InvoiceDto>(`${this.baseUrl}/Invoices`, dto)

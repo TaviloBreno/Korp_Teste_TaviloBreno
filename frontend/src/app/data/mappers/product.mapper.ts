@@ -5,17 +5,17 @@ export class ProductMapper {
   static toDomain(dto: ProductDto): Product {
     return {
       id: dto.id,
-      code: dto.codigo,
-      description: dto.descricao,
-      stockBalance: dto.saldo,
+      code: dto.code ?? (dto as any).codigo,
+      description: dto.description ?? (dto as any).descricao,
+      stockBalance: dto.stockBalance ?? (dto as any).saldo,
     };
   }
 
   static toDto(entity: Omit<Product, 'id'>): Omit<ProductDto, 'id'> {
     return {
-      codigo: entity.code,
-      descricao: entity.description,
-      saldo: entity.stockBalance,
+      code: entity.code,
+      description: entity.description,
+      stockBalance: entity.stockBalance,
     };
   }
 }
