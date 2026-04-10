@@ -33,6 +33,15 @@ namespace InventoryService.Domain.Entities
             CreatedAt = DateTime.UtcNow;
         }
 
+        public Product(Guid id, string code, string description, decimal stockBalance)
+            : this(code, description, stockBalance)
+        {
+            if (id == Guid.Empty)
+                throw new ArgumentException("Product id is required.", nameof(id));
+
+            Id = id;
+        }
+
         public void DeductStock(decimal quantity)
         {
             if (quantity <= 0)

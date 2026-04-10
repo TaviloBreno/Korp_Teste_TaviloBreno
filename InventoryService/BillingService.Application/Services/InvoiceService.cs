@@ -138,9 +138,11 @@ namespace BillingService.Application.Services
 
             if (status == InvoiceStatus.Closed && invoice.Status == InvoiceStatus.Open)
             {
-                invoice.Close();
+                throw new InvalidOperationException(
+                    "Nao e permitido fechar nota manualmente. Use a emissao/impressao para fechar e baixar o estoque.");
             }
-            else if (status == InvoiceStatus.Open && invoice.Status == InvoiceStatus.Closed)
+
+            if (status == InvoiceStatus.Open && invoice.Status == InvoiceStatus.Closed)
             {
                 invoice.Reopen();
             }

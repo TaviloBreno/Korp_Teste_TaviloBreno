@@ -357,7 +357,7 @@ Para resetar: Delete e recrie o banco de dados.
 
 - Nao se aplica, pois esta solucao foi implementada em `C# (.NET 8)` e `Angular`.
 
-### 6) Frameworks utilizados no Golang ou C#
+### 6) Frameworks utilizados no Golang ou C\#
 
 - `ASP.NET Core 8` para APIs REST.
 - `Entity Framework Core 8` para acesso a dados.
