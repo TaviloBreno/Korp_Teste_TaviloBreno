@@ -47,10 +47,10 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
           <div class="md:col-span-8">
             <label class="block text-xs font-semibold text-gray-600 mb-1">Busca</label>
             <div class="relative">
-              <i class="pi pi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10"></i>
+              <i class="pi pi-search pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10"></i>
               <input
                 pInputText
-                class="w-full h-10 rounded-lg border border-gray-300 bg-white pl-11 pr-3 text-sm"
+                class="w-full h-10 rounded-lg border border-gray-300 bg-white pl-3 pr-11 text-sm"
                 placeholder="Procurar por código ou descrição"
                 [value]="productSearch()"
                 (input)="productSearch.set($any($event.target).value)"
