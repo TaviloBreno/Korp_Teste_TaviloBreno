@@ -44,18 +44,32 @@ namespace InventoryService.Application.Services
 
         public async Task<ProductDto> DeductStockAsync(Guid id, decimal quantity, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Deducting {Quantity} from product {ProductId}", quantity, id);
+            _logger.LogInformation("Iniciando baixa de {Quantity} no produto {ProductId}", quantity, id);
 
             var product = await _repository.GetByIdAsync(id, cancellationToken)
-                ?? throw new InvalidOperationException($"Product with id '{id}' not found.");
+                ?? throw new InvalidOperationException($"Produto com id '{id}' não encontrado.");
 
-            product.DeductStock(quantity);
-            _repository.Update(product);
+            try
+            {
+                product.DeductStock(quantity);
 
-            _logger.LogInformation("Stock updated for product {ProductId}. New balance: {Balance}",
-                product.Id, product.StockBalance);
+                await _repository.UpdateAsync(product, cancellationToken);
 
-            return MapToDto(product);
+                _logger.LogInformation("Estoque atualizado com sucesso para o produto {ProductId}. Novo saldo: {Balance}",
+                    product.Id, product.StockBalance);
+
+                return MapToDto(product);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validação de domínio falhou para o produto {ProductId}: {Message}", id, ex.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado ao processar baixa de estoque do produto {ProductId}", id);
+                throw new InvalidOperationException("Não foi possível processar a baixa de estoque. Tente novamente.", ex);
+            }
         }
 
         private static ProductDto MapToDto(Domain.Entities.Product product) => new(

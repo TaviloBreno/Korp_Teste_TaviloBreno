@@ -9,10 +9,12 @@ namespace InventoryService.Api.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductService _service;
+        private readonly ILogger<ProductsController> _logger;
 
-        public ProductsController(IProductService service)
+        public ProductsController(IProductService service, ILogger<ProductsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -20,8 +22,16 @@ namespace InventoryService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateProductDto dto, CancellationToken cancellationToken)
         {
-            var result = await _service.CreateAsync(dto, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            try
+            {
+                var result = await _service.CreateAsync(dto, cancellationToken);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error creating product: {Message}", ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpGet("{id:guid}")]
@@ -44,10 +54,24 @@ namespace InventoryService.Api.Controllers
         [HttpPatch("{id:guid}/deduct-stock")]
         [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeductStock(Guid id, [FromBody] decimal quantity, CancellationToken cancellationToken)
         {
-            var result = await _service.DeductStockAsync(id, quantity, cancellationToken);
-            return Ok(result);
+            try
+            {
+                var result = await _service.DeductStockAsync(id, quantity, cancellationToken);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error for product {ProductId}: {Message}", id, ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error deducting stock for product {ProductId}", id);
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
+            }
         }
     }
 }
