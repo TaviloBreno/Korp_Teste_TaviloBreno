@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BillingService.Application.Services
 {
-    public class InvoiceService
+    public class InvoiceService : IInvoiceService
     {
         private readonly IInvoiceRepository _repository;
         private readonly IInventoryClient _inventoryClient;
