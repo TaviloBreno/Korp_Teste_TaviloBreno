@@ -9,10 +9,12 @@ namespace BillingService.Api.Controllers
     public class InvoicesController : ControllerBase
     {
         private readonly IInvoiceService _service;
+        private readonly ILogger<InvoicesController> _logger;
 
-        public InvoicesController(IInvoiceService service)
+        public InvoicesController(IInvoiceService service, ILogger<InvoicesController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         [HttpPost]
@@ -20,8 +22,21 @@ namespace BillingService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateInvoiceDto dto, CancellationToken cancellationToken)
         {
-            var result = await _service.CreateAsync(dto, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            try
+            {
+                var result = await _service.CreateAsync(dto, cancellationToken);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error creating invoice: {Message}", ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating invoice");
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
+            }
         }
 
         [HttpGet]
@@ -47,8 +62,21 @@ namespace BillingService.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Print(Guid id, CancellationToken cancellationToken)
         {
-            var result = await _service.PrintAsync(id, cancellationToken);
-            return Ok(result);
+            try
+            {
+                var result = await _service.PrintAsync(id, cancellationToken);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning("Validation error printing invoice {InvoiceId}: {Message}", id, ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error printing invoice {InvoiceId}", id);
+                return StatusCode(500, new { error = "An unexpected error occurred. Please try again later." });
+            }
         }
     }
 }

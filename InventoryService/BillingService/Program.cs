@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Polly;
+using Polly.Extensions.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,17 +31,23 @@ builder.Services.AddHttpClient<IInventoryClient, InventoryClient>(client =>
 })
 .AddPolicyHandler((services, request) =>
 {
-    return Policy
-        .Handle<HttpRequestException>()
-        .OrResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-        .WaitAndRetryAsync(3, retryAttempt =>
-            TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-        (outcome, timespan, retryCount, context) =>
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("Retry {RetryCount} after {Timespan}s due to {StatusCode}",
-                retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode);
-        });
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    var retryPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            (outcome, timespan, retryCount, context) =>
+                logger.LogWarning("⚡ Retry {RetryCount} after {Timespan}s due to {StatusCode}",
+                    retryCount, timespan.TotalSeconds, outcome.Result?.StatusCode));
+
+    var circuitBreakerPolicy = HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30),
+            onBreak: (outcome, breakDuration) =>
+                logger.LogWarning("🔴 Circuit Breaker OPENED for {Duration}s. InventoryService is unstable.", breakDuration.TotalSeconds),
+            onReset: () => logger.LogInformation("🟢 Circuit Breaker RESET. InventoryService is healthy again."));
+
+    return retryPolicy.WrapAsync(circuitBreakerPolicy);
 });
 
 builder.Services.AddControllers();
@@ -75,17 +82,32 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Billing Service API v1");
     });
 }
+else
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 app.UseAuthorization();
 app.MapControllers();
-app.UseExceptionHandler("/error");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.Map("/error", async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"error\":\"An unexpected error occurred. Please try again later.\"}");
+    });
+}
 
 app.Run();
