@@ -140,15 +140,15 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
             <tr>
               <td>{{ inv.sequentialNumber }}</td>
               <td>
-                <span
-                  class="inline-flex min-w-[100px] justify-center rounded-full px-2 py-1 text-xs font-semibold"
-                  [class.bg-emerald-100]="inv.status === InvoiceStatus.Aberta"
-                  [class.text-emerald-700]="inv.status === InvoiceStatus.Aberta"
-                  [class.bg-gray-200]="inv.status === InvoiceStatus.Fechada"
-                  [class.text-gray-700]="inv.status === InvoiceStatus.Fechada"
+                <select
+                  class="h-9 rounded-lg border border-gray-300 bg-white px-2 text-xs font-semibold"
+                  [value]="inv.status"
+                  [disabled]="saving()"
+                  (change)="onStatusChange(inv, $any($event.target).value)"
                 >
-                  {{ inv.status === InvoiceStatus.Aberta ? 'ABERTA' : 'FECHADA' }}
-                </span>
+                  <option [value]="InvoiceStatus.Aberta">ABERTA</option>
+                  <option [value]="InvoiceStatus.Fechada">FECHADA</option>
+                </select>
               </td>
               <td>{{ inv.items.length }} produto(s)</td>
               <td>{{ inv.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
@@ -382,8 +382,9 @@ export class InvoicesPageComponent implements OnInit {
   readonly dialogVisible: WritableSignal<boolean> = signal(false);
   readonly printModalVisible: WritableSignal<boolean> = signal(false);
   readonly selectedInvoice = signal<Invoice | null>(null);
+  readonly isPrintingRequest: WritableSignal<boolean> = signal(false);
   readonly saving = computed(() => this.isInvoiceLoading());
-  readonly printing = computed(() => this.isInvoiceLoading());
+  readonly printing = computed(() => this.isPrintingRequest());
 
   invoiceForm: FormGroup = this.fb.group({ items: this.fb.array([]) });
   get items(): FormArray {
@@ -471,6 +472,16 @@ export class InvoicesPageComponent implements OnInit {
   }
 
   openPdfConfirmation(inv: Invoice) {
+    if (inv.status === InvoiceStatus.Fechada) {
+      this.msg.add({
+        severity: 'warn',
+        summary: 'Nota fechada',
+        detail: 'Nao e permitido emitir PDF de nota fechada.',
+        life: 3000,
+      });
+      return;
+    }
+
     this.selectedInvoice.set(inv);
     this.printModalVisible.set(true);
   }
@@ -480,10 +491,33 @@ export class InvoicesPageComponent implements OnInit {
     const inv = this.selectedInvoice();
     if (!inv) return;
 
+    if (inv.status === InvoiceStatus.Fechada) {
+      this.msg.add({
+        severity: 'warn',
+        summary: 'Nota fechada',
+        detail: 'Nao e permitido emitir PDF de nota fechada.',
+        life: 3000,
+      });
+      this.printModalVisible.set(false);
+      return;
+    }
+
+    this.isPrintingRequest.set(true);
+
     this.invState.print(inv.id, (updatedInvoice) => {
       this.pdfService.generate(updatedInvoice);
       this.printModalVisible.set(false);
+    }, () => {
+      this.isPrintingRequest.set(false);
     });
+  }
+
+  onStatusChange(invoice: Invoice, statusValue: string) {
+    const status = statusValue as InvoiceStatus;
+    if (status !== InvoiceStatus.Aberta && status !== InvoiceStatus.Fechada) return;
+    if (status === invoice.status) return;
+
+    this.invState.updateStatus(invoice.id, status);
   }
 
   onInvoiceRetry() {

@@ -78,7 +78,6 @@ export class InvoiceApiService implements InvoiceRepository {
     return this.http
       .post<InvoiceDto>(`${this.baseUrl}/Invoices`, dto)
       .pipe(
-        this.retryWithBackoff<InvoiceDto>(),
         map(InvoiceMapper.toDomain),
         catchError((error) =>
           throwError(() => ({
@@ -95,7 +94,6 @@ export class InvoiceApiService implements InvoiceRepository {
     return this.http
       .post<InvoiceDto>(`${this.baseUrl}/Invoices/${id}/print`, {})
       .pipe(
-        this.retryWithBackoff<InvoiceDto>(),
         map(InvoiceMapper.toDomain),
         catchError((error) =>
           throwError(() => ({
@@ -114,7 +112,6 @@ export class InvoiceApiService implements InvoiceRepository {
     return this.http
       .patch<InvoiceDto>(`${this.baseUrl}/Invoices/${id}/status`, { status: statusValue })
       .pipe(
-        this.retryWithBackoff<InvoiceDto>(),
         map(InvoiceMapper.toDomain),
         catchError((error) =>
           throwError(() => ({

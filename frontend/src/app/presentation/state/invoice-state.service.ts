@@ -17,7 +17,11 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
   private createSubject = new Subject<{
     items: { productId: string; quantity: number; unitPrice: number }[];
   }>();
-  private printSubject = new Subject<{ id: string; onSuccess?: (invoice: Invoice) => void }>();
+  private printSubject = new Subject<{
+    id: string;
+    onSuccess?: (invoice: Invoice) => void;
+    onFinalize?: () => void;
+  }>();
   private updateStatusSubject = new Subject<{ id: string; status: InvoiceStatus }>();
   private inventoryRefreshSubject = new Subject<void>();
 
@@ -109,7 +113,7 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
           this.loadingService.show();
           this._state.update((s) => ({ ...s, loading: true, error: null }));
         }),
-        switchMap(({ id, onSuccess }) =>
+        switchMap(({ id, onSuccess, onFinalize }) =>
           this.api.print(id).pipe(
             tap((updatedInvoice) => {
               this.messageService.add({
@@ -149,6 +153,7 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
                 ...s,
                 loading: false,
               }));
+              onFinalize?.();
             }),
           ),
         ),
@@ -206,8 +211,8 @@ export class InvoiceStateService extends BaseStateService<Invoice[]> {
     this.createSubject.next(invoiceData);
   }
 
-  print(id: string, onSuccess?: (invoice: Invoice) => void): void {
-    this.printSubject.next({ id, onSuccess });
+  print(id: string, onSuccess?: (invoice: Invoice) => void, onFinalize?: () => void): void {
+    this.printSubject.next({ id, onSuccess, onFinalize });
   }
 
   updateStatus(id: string, status: InvoiceStatus): void {
