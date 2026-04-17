@@ -173,6 +173,27 @@ import { ErrorBoundaryComponent } from '../../components/error-boundary.componen
         />
       </ng-template>
     </p-dialog>
+
+    <p-dialog
+      [(visible)]="validationModalVisible"
+      header="Validação de Produto"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: '420px' }"
+    >
+      <div class="py-2">
+        <p class="m-0 text-gray-700">{{ validationModalMessage() }}</p>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button
+          label="Entendi"
+          icon="pi pi-check"
+          (onClick)="validationModalVisible.set(false)"
+        />
+      </ng-template>
+    </p-dialog>
     <p-toast />
   `,
 })
@@ -228,6 +249,8 @@ export class ProductsPageComponent implements OnInit {
   readonly dialogVisible: WritableSignal<boolean> = signal(false);
   readonly isEdit: WritableSignal<boolean> = signal(false);
   readonly editingId: WritableSignal<string | null> = signal(null);
+  readonly validationModalVisible: WritableSignal<boolean> = signal(false);
+  readonly validationModalMessage: WritableSignal<string> = signal('');
 
   readonly errorState = computed(() => {
     const err = this.error();
@@ -267,17 +290,51 @@ export class ProductsPageComponent implements OnInit {
 
   save() {
     if (this.productForm.invalid || this.saving()) return;
+
     const val = this.productForm.getRawValue();
+    const normalizedCode = String(val.code ?? '').trim().toLowerCase();
+    const stockBalance = Number(val.stockBalance ?? 0);
+
+    if (!normalizedCode) {
+      this.showValidationModal('O SKU do produto e obrigatorio.');
+      return;
+    }
+
+    const hasDuplicateSku = (this.products() || []).some((product) => {
+      const isSameProduct = this.isEdit() && product.id === this.editingId();
+      if (isSameProduct) return false;
+      return product.code.trim().toLowerCase() === normalizedCode;
+    });
+
+    if (hasDuplicateSku) {
+      this.showValidationModal('Ja existe um produto cadastrado com este SKU.');
+      return;
+    }
+
+    if (stockBalance < 0) {
+      this.showValidationModal('O saldo do produto nao pode ser negativo.');
+      return;
+    }
+
     if (this.isEdit()) {
       this.state.update(this.editingId()!, {
-        code: val.code,
-        description: val.description,
+        code: String(val.code).trim(),
+        description: String(val.description ?? '').trim(),
         stockBalance: val.stockBalance,
       });
     } else {
-      this.state.create(val);
+      this.state.create({
+        ...val,
+        code: String(val.code).trim(),
+        description: String(val.description ?? '').trim(),
+      });
     }
     this.dialogVisible.set(false);
+  }
+
+  private showValidationModal(message: string) {
+    this.validationModalMessage.set(message);
+    this.validationModalVisible.set(true);
   }
 
   hideDialog() {
