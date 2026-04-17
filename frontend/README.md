@@ -1,59 +1,122 @@
-# KorpTesteTaviloBreno
+# Frontend - Korp (Angular 20)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.2.
+Aplicacao frontend do projeto Korp para gerenciamento de produtos e emissao de notas fiscais. 💻
 
-## Development server
+## Objetivo 🎯
 
-To start a local development server, run:
+Este frontend consome duas APIs:
 
-```bash
-ng serve
+- InventoryService (produtos e estoque)
+- BillingService (notas fiscais)
+
+Com isso, a interface permite:
+
+- Cadastrar e consultar produtos
+- Criar e listar notas fiscais
+- Imprimir/fechar notas (com baixa de estoque no backend)
+
+## Tecnologias 🧰
+
+- Angular 20
+- TypeScript 5.9
+- RxJS 7.8
+- PrimeNG 20
+- Tailwind CSS 3.4
+
+## Estrutura Principal 🗂️
+
+```text
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── core/
+│   │   ├── data/
+│   │   ├── domain/
+│   │   ├── presentation/
+│   │   └── shared/
+│   └── environments/
+├── angular.json
+└── package.json
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Configuracao de Ambiente ⚙️
 
-## Code scaffolding
+Arquivo de desenvolvimento:
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- src/environments/environment.development.ts
 
-```bash
-ng generate component component-name
+Configuracao atual:
+
+```typescript
+export const environment = {
+	production: false,
+	inventoryApiUrl: 'http://localhost:5100/api',
+	billingApiUrl: 'http://localhost:5286/api',
+	retryAttempts: 3,
+	retryDelayMs: 1000,
+};
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Como Executar Localmente 🚀
+
+Pre-requisitos:
+
+- Node.js 20+
+- npm
+
+Passo a passo:
+
+1. Entre na pasta do frontend:
 
 ```bash
-ng generate --help
+cd frontend
 ```
 
-## Building
-
-To build the project run:
+2. Instale as dependencias:
 
 ```bash
-ng build
+npm install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+3. Inicie o servidor de desenvolvimento:
 
 ```bash
-ng test
+npm start
 ```
 
-## Running end-to-end tests
+4. Acesse no navegador:
 
-For end-to-end (e2e) testing, run:
+- http://localhost:4200
+
+Importante: antes de usar o frontend, suba as APIs e o banco Docker para que as chamadas HTTP funcionem corretamente.
+
+## Scripts Uteis 📜
 
 ```bash
-ng e2e
+# Servidor local
+npm start
+
+# Build de producao
+npm run build
+
+# Lint
+npm run lint
+
+# Testes unitarios
+npm test
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Integracao com Backend 🔗
 
-## Additional Resources
+Servicos esperados em desenvolvimento:
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- InventoryService HTTP: http://localhost:5100/api
+- BillingService HTTP: http://localhost:5286/api
+
+Se as portas mudarem, ajuste no arquivo de environment para evitar erro de conexao.
+
+## Dicas Rapidas 💡
+
+- Se aparecer erro de CORS, confirme se o frontend esta em http://localhost:4200.
+- Se aparecer erro de rede, confirme se as duas APIs estao rodando.
+- Se nao aparecer dados, confira se o banco foi inicializado e seedado.

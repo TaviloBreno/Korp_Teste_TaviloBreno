@@ -1,26 +1,26 @@
 # Korp - Teste Tecnico (Inventory + Billing + Frontend)
 
-Sistema completo de emissao de notas fiscais com arquitetura de microsservicos em .NET 8 no backend e Angular 20 no frontend, dividido em dois dominios principais:
+Sistema completo de emissao de notas fiscais com arquitetura de microsservicos em .NET 8 no backend e Angular 20 no frontend, dividido em dois dominios principais.
 
-- InventoryService: API REST para cadastro de produtos e controle de estoque (.NET 8)
-- BillingService: API REST para emissao e fechamento de notas fiscais (.NET 8)
-- Frontend: Interface Angular para gerenciar produtos e notas fiscais
+## Visao Geral 📌
 
-## Visao Geral
+Este repositorio contem uma aplicacao full stack com:
 
-Repositorio com solucao completa em C# (backend) com separacao em camadas (Api, Application, Domain, Infrastructure) e frontend Angular em componentes standalone com estado reativo.
+- InventoryService: API para produtos e estoque
+- BillingService: API para emissao e fechamento de notas fiscais
+- Frontend Angular: interface para operacao do fluxo completo
 
-Fluxo principal de negocio:
+Fluxo de negocio principal:
 
-1. Usuario acessa interface Angular.
-2. Cadastra ou consulta produtos no InventoryService.
-3. Cria novas notas fiscais no BillingService (referenciando produtos).
-4. Ao imprimir/fechar a nota, o BillingService comunica com InventoryService para baixar estoque.
-5. Se alguma baixa falhar, o fechamento e interrompido com erro de validacao.
+1. Usuario acessa o frontend em http://localhost:4200.
+2. Consulta ou cadastra produtos no InventoryService.
+3. Cria uma nota fiscal no BillingService com itens de produto.
+4. Ao imprimir/fechar a nota, o BillingService chama o InventoryService para baixar estoque.
+5. Se alguma validacao falhar, a operacao retorna erro e o fechamento nao e concluido.
 
-Os seeds sao executados automaticamente na inicializacao das APIs quando os bancos estao vazios.
+Observacao: os bancos sao populados automaticamente com dados seed na inicializacao quando estao vazios.
 
-## Arquitetura
+## Arquitetura 🏗️
 
 ```text
 Korp_Teste_TaviloBreno/
@@ -60,23 +60,18 @@ Korp_Teste_TaviloBreno/
     └── Shared.Models/
 ```
 
-## Tecnologias
+## Tecnologias 🧰
 
-- .NET 8 (ASP.NET Core Web API)
-- Entity Framework Core 8
-- Angular 20
-- TypeScript 5.9
-- SQL Server 2022 (Docker)
-- Swagger / OpenAPI (Swashbuckle)
-- Polly (resiliencia entre microsservicos)
-- PrimeNG e Tailwind CSS
-- Node.js 20+
+- Backend: .NET 8, ASP.NET Core Web API, EF Core 8, Polly, Swagger
+- Frontend: Angular 20, TypeScript 5.9, PrimeNG, Tailwind CSS
+- Banco: SQL Server 2022 em Docker
+- Ferramentas: Node.js 20+, npm
 
-## Endpoints Principais
+## Endpoints Principais 🔌
 
 ### InventoryService
 
-Base URL:
+Base URLs:
 
 - HTTP: http://localhost:5100/api
 - HTTPS: https://localhost:7126/api
@@ -91,7 +86,7 @@ Base URL:
 
 ### BillingService
 
-Base URL:
+Base URLs:
 
 - HTTP: http://localhost:5286/api
 - HTTPS: https://localhost:7128/api
@@ -104,42 +99,61 @@ Base URL:
 | GET | /Invoices/{id} | Buscar nota por ID |
 | POST | /Invoices/{id}/print | Imprimir e fechar nota |
 
-## Como Executar Localmente
+## Como Executar Localmente 🚀
 
 Pre-requisitos:
 
-- Docker Desktop em execucao
-- .NET SDK 8
-- Node.js 20+
+- Docker Desktop ativo
+- .NET SDK 8 instalado
+- Node.js 20+ instalado
 
-1. No diretorio raiz do projeto, suba o SQL Server:
+### 1) Subir banco SQL Server
+
+Na raiz do projeto:
 
 ```bash
 docker-compose up -d
 ```
 
-2. Restaure as dependencias do backend:
+Banco configurado:
+
+- Host: localhost
+- Porta: 1433
+- Usuario: sa
+- Senha: Korp@2026!
+
+### 2) Restaurar dependencias do backend
 
 ```bash
 cd InventoryService
 dotnet restore InventoryService.Api.sln
 ```
 
-3. Execute o InventoryService (Terminal 1):
+### 3) Iniciar InventoryService (Terminal 1)
 
 ```bash
 cd InventoryService
 dotnet run
 ```
 
-4. Execute o BillingService (Terminal 2):
+Esperado:
+
+- http://localhost:5100
+- https://localhost:7126
+
+### 4) Iniciar BillingService (Terminal 2)
 
 ```bash
 cd BillingService
 dotnet run
 ```
 
-5. Execute o frontend Angular (Terminal 3):
+Esperado:
+
+- http://localhost:5286
+- https://localhost:7128
+
+### 5) Iniciar frontend Angular (Terminal 3)
 
 ```bash
 cd frontend
@@ -147,22 +161,18 @@ npm install
 npm start
 ```
 
-6. Acesse as aplicacoes:
+Esperado:
 
-- Frontend: http://localhost:4200
-- Inventory Swagger: https://localhost:7126/swagger
-- Billing Swagger: https://localhost:7128/swagger
+- Frontend em http://localhost:4200
 
-Banco SQL Server (Docker):
+### 6) Validar ambiente
 
-- Host: localhost
-- Porta: 1433
-- Usuario: sa
-- Senha: Korp@2026!
+- Swagger Inventory: https://localhost:7126/swagger
+- Swagger Billing: https://localhost:7128/swagger
 
-## Dados de Teste
+## Dados de Teste 🧪
 
-### Produtos seed (InventoryService)
+### Produtos seed (10 itens)
 
 | Codigo | Descricao | Estoque | Preco |
 |---|---|---:|---:|
@@ -177,14 +187,14 @@ Banco SQL Server (Docker):
 | SKU-009 | Mousepad Grande | 150 | 79.90 |
 | SKU-010 | Hub USB 3.0 7 Portas | 40 | 129.90 |
 
-### Notas seed (BillingService)
+### Notas seed (2 itens)
 
-| Nota | Itens | Status inicial | Total |
+| Nota | Itens | Status | Total |
 |---|---|---|---:|
 | Nota 1 | SKU-001 (2 x 1299.99), SKU-002 (1 x 129.99) | Open | 2729.97 |
 | Nota 2 | SKU-003 (3 x 249.99) | Open | 749.97 |
 
-## Configuracoes
+## Configuracoes ⚙️
 
 Arquivos principais:
 
@@ -193,7 +203,7 @@ Arquivos principais:
 - frontend/src/environments/environment.development.ts
 - frontend/src/environments/environment.ts
 
-Exemplo real de configuracao de desenvolvimento:
+### Backend (InventoryService)
 
 ```json
 {
@@ -206,6 +216,8 @@ Exemplo real de configuracao de desenvolvimento:
 }
 ```
 
+### Backend (BillingService)
+
 ```json
 {
   "ConnectionStrings": {
@@ -217,6 +229,8 @@ Exemplo real de configuracao de desenvolvimento:
 }
 ```
 
+### Frontend (development)
+
 ```typescript
 export const environment = {
   production: false,
@@ -227,6 +241,12 @@ export const environment = {
 };
 ```
 
-## Licenca
+## Dicas de Uso 💡
+
+- Para emitir nota com sucesso, garanta que os produtos ja existem no InventoryService.
+- O endpoint de impressao/fechamento de nota e POST /Invoices/{id}/print.
+- Ao fechar nota, o BillingService baixa estoque no InventoryService automaticamente.
+
+## Licenca 📄
 
 Este projeto esta licenciado sob a MIT License. Consulte o arquivo LICENSE para mais detalhes.
